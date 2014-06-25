@@ -39,12 +39,16 @@ function MaxCube(ip, port) {
     self.busy = false;
   });
 
+  this.client.on('close', function() {
+    log('Connection closed');
+  });
+
   var ruleUpdateTrigger = new schedule.RecurrenceRule();
   ruleUpdateTrigger.minute = [new schedule.Range(8, 60, 15)];
   var updateTriggerJob = schedule.scheduleJob(ruleUpdateTrigger, function(){
     log('Update trigger');
     if (self.devices[0] !== undefined && self.devices[0].devicetype === 1) {
-      setTemperature.call(self, self.devices[0].rf_address, 'manual', 11.5);
+      setTemperature.call(self, self.devices[0].rf_address, 'MANUAL', 11.5);
     }
   });
 
@@ -53,7 +57,7 @@ function MaxCube(ip, port) {
   var updateTriggerResetJob = schedule.scheduleJob(ruleUpdateTriggerReset, function(){
     log('Update trigger reset');
     if (self.devices[0] !== undefined && self.devices[0].devicetype === 1) {
-      setTemperature.call(self, self.devices[0].rf_address, 'manual', 11);
+      setTemperature.call(self, self.devices[0].rf_address, 'MANUAL', 11);
     }
   });
 
@@ -72,6 +76,12 @@ function MaxCube(ip, port) {
 // class methods
 MaxCube.prototype.getDeviceStatus = function(rf_address) {
   return this.devices[rf_address];
+};
+MaxCube.prototype.close = function() {
+  this.client.destroy();
+};
+MaxCube.prototype.doBoost = function(rf_address, temperature) {
+  return setTemperature.call(this, rf_address, 'BOOST', temperature);
 };
 
 function send (dataStr, callback) {
@@ -185,17 +195,39 @@ function parseCommandMetadata (payload) {
 function parseCommandDeviceList (payload) {
   var decodedPayload = new Buffer(payload, 'base64');
 
+  // get mode
+  var mode = 'AUTO';
+  if ((decodedPayload[6] & 3) === 3) {
+    mode = 'BOOST';
+  } else if (decodedPayload[6] & 1) {
+    mode = 'MANUAL';
+  } else if (decodedPayload[6] & 2) {
+    mode = 'VACATION';
+  }
+
   var dataObj = {
     rf_address: decodedPayload.slice(1, 4).toString('hex'),
     valve: decodedPayload[7],
-    temp: parseInt(decodedPayload[9].toString(2) + decodedPayload[10].toString(2), 2) / 10,
-    setpoint: (decodedPayload[8] / 2)
+    setpoint: (decodedPayload[8] / 2),
+    mode: mode,
+    dst_active: !!(decodedPayload[6] & 8),
+    gateway_known: !!(decodedPayload[6] & 16),
+    panel_locked: !!(decodedPayload[6] & 32),
+    link_error: !!(decodedPayload[6] & 64),
+    battery_low: !!(decodedPayload[6] & 128)
   };
 
+  if (mode === 'VACATION') {
+    var hours = parseInt(decodedPayload[11].toString(10)) / 2;
+    dataObj.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ('00' + (hours % 1)).substr(-2);
+  } else {
+    dataObj.temp = parseInt(decodedPayload[9].toString(2) + decodedPayload[10].toString(2), 2) / 10;
+  }
+
   // cache status
-  if (dataObj.temp !== 0) {
+  if (dataObj.temp !== undefined && dataObj.temp !== 0) {
     this.devices[dataObj.rf_address] = dataObj;
-    this.devices[dataObj.rf_address].lastUpdate = new Date();
+    this.devices[dataObj.rf_address].lastUpdate = moment().format();
   }
 
   return dataObj;
@@ -213,7 +245,7 @@ function parseCommandSendDevice (payload) {
   return dataObj;
 }
 
-function setTemperature (rfAdress, mode, temperature) {
+function setTemperature (rfAdress, mode, temperature, untilDate) {
   if (!this.isConnected) {
     log('Not connected');
     return;
@@ -226,19 +258,31 @@ function setTemperature (rfAdress, mode, temperature) {
     log('Duty cycle %: ' + this.dutyCycle + ', Free memory slots: ' + this.memorySlots);
   }
 
+  var date_until = '0000';
+  var time_until = '00';
+
   // 00 = Auto weekprog (no temp is needed, just make the whole byte 00)
   // 01 = Permanent
   // 10 = Temporarily
   var modeBin;
   switch (mode) {
-    case 'auto':
+    case 'AUTO':
     modeBin = '00';
     break;
-    case 'manual':
+    case 'MANUAL':
     modeBin = '01';
     break;
-    case 'boost':
+    case 'VACATION':
     modeBin = '10';
+    var momentDate = moment(untilDate);
+    var year_until = ('0000000' + (momentDate.get('year') - 2000).toString(2)).substr(-7);
+    var month_until = ('0000' + momentDate.get('month').toString(2)).substr(-4);
+    var day_until = ('00000' + momentDate.get('day').toString(2)).substr(-5);
+    date_until = ('0000' + (month_until.substr(0,3) + day_until + month_until.substr(-1) + year_until).toString(16)).substr(-4);
+    time_until = ('00' + Math.round((momentDate.get('hour') + (momentDate.get('minute') / 60)) * 2).toString(16)).substr(-2);
+    break;
+    case 'BOOST':
+    modeBin = '11';
     break;
     default:
     log('Unknown mode: ' + mode);
@@ -254,7 +298,7 @@ function setTemperature (rfAdress, mode, temperature) {
     var reqTempHex = parseInt(reqTempBinary, 2).toString(16);
   }
 
-  var payload = new Buffer('000440000000' + rfAdress + '01' + reqTempHex, 'hex').toString('base64');
+  var payload = new Buffer('000440000000' + rfAdress + '00' + reqTempHex + date_until + time_until, 'hex').toString('base64');
   var data = 's:' + payload + '\r\n';
   send.call(this, data, callback);
 
