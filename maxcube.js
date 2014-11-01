@@ -77,6 +77,12 @@ function MaxCube(ip, port) {
 MaxCube.prototype.getDeviceStatus = function(rf_address) {
   return this.devices[rf_address];
 };
+MaxCube.prototype.getDevices = function() {
+  return this.devices;
+};
+MaxCube.prototype.getRooms = function() {
+  return this.rooms;
+};
 MaxCube.prototype.close = function() {
   this.client.destroy();
 };
