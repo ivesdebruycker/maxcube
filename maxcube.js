@@ -188,7 +188,6 @@ function parseCommandMetadata (payload) {
         devicetype: devicetype,
         rf_address: rf_address,
         serialnumber: serialnumber,
-        device_name_length: device_name_length,
         device_name: device_name,
         room_id: room_id,
       };
