@@ -1,6 +1,7 @@
 var net = require('net');
 var schedule = require('node-schedule');
 var moment = require('moment');
+var fs = require('fs');
 
 var updateIntervalMins = 15;
 var heartbeatIntervalSecs = 20;
