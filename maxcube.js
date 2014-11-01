@@ -187,7 +187,7 @@ function parseCommandMetadata (payload) {
       };
       this.devices.push(deviceData);
 
-      currentIndex = currentIndex + 17 + device_name_length;
+      currentIndex = currentIndex + 16 + device_name_length;
     }
   }
 }
