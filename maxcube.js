@@ -20,6 +20,7 @@ function MaxCube(ip, port) {
 
   this.rooms = [];
   this.devices = [];
+  this.devicesStatus = [];
 
   this.client = new net.Socket();
 
@@ -45,21 +46,35 @@ function MaxCube(ip, port) {
   });
 
   var ruleUpdateTrigger = new schedule.RecurrenceRule();
+  // run every 15 mins, first time 8 min after hour
   ruleUpdateTrigger.minute = [new schedule.Range(8, 60, 15)];
   var updateTriggerJob = schedule.scheduleJob(ruleUpdateTrigger, function(){
-    log('Update trigger');
-    if (self.devices[0] !== undefined && self.devices[0].devicetype === 1) {
-      setTemperature.call(self, self.devices[0].rf_address, 'MANUAL', 11.5);
-    }
+    for (var i = 0; i < self.devices.length; i++) {
+      if (self.devices[i] !== undefined && self.devices[i].devicetype === 1) {
+        // TODO: better not use anonymous function? (http://stackoverflow.com/a/5226333)
+        (function(i) {
+          setTimeout(function() {
+            log('Update trigger ' + self.devices[i].rf_address);
+            setTemperature.call(self, self.devices[i].rf_address, 'MANUAL', 11.5);
+          }, i * 15000);
+        })(i);
+      }
+    };
   });
 
   var ruleUpdateTriggerReset = new schedule.RecurrenceRule();
   ruleUpdateTriggerReset.minute = [new schedule.Range(10, 60, 15)];
   var updateTriggerResetJob = schedule.scheduleJob(ruleUpdateTriggerReset, function(){
-    log('Update trigger reset');
-    if (self.devices[0] !== undefined && self.devices[0].devicetype === 1) {
-      setTemperature.call(self, self.devices[0].rf_address, 'MANUAL', 11);
-    }
+    for (var i = 0; i < self.devices.length; i++) {
+      if (self.devices[i] !== undefined && self.devices[i].devicetype === 1) {
+        (function(i) {
+          setTimeout(function() {
+            log('Update trigger reset ' + self.devices[i].rf_address);
+            setTemperature.call(self, self.devices[i].rf_address, 'MANUAL', 11);
+          }, i * 15000);
+        })(i);
+      }
+    };
   });
 
   var ruleHeartbeat = new schedule.RecurrenceRule();
@@ -76,7 +91,7 @@ function MaxCube(ip, port) {
 }
 // class methods
 MaxCube.prototype.getDeviceStatus = function(rf_address) {
-  return this.devices[rf_address];
+  return this.devicesStatus[rf_address];
 };
 MaxCube.prototype.getDevices = function() {
   return this.devices;
@@ -232,8 +247,8 @@ function parseCommandDeviceList (payload) {
 
   // cache status
   if (dataObj.temp !== undefined && dataObj.temp !== 0) {
-    this.devices[dataObj.rf_address] = dataObj;
-    this.devices[dataObj.rf_address].lastUpdate = moment().format();
+    this.devicesStatus[dataObj.rf_address] = dataObj;
+    this.devicesStatus[dataObj.rf_address].lastUpdate = moment().format();
   }
 
   return dataObj;
