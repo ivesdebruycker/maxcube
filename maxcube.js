@@ -214,42 +214,47 @@ function parseCommandMetadata (payload) {
 }
 
 function parseCommandDeviceList (payload) {
+  var dataObj = [];
   var decodedPayload = new Buffer(payload, 'base64');
+  for (var i = 0; i < this.devices.length; i++) {
+    var devicePos = i * 12;
 
-  // get mode
-  var mode = 'AUTO';
-  if ((decodedPayload[6] & 3) === 3) {
-    mode = 'BOOST';
-  } else if (decodedPayload[6] & 1) {
-    mode = 'MANUAL';
-  } else if (decodedPayload[6] & 2) {
-    mode = 'VACATION';
-  }
+    // get mode
+    var mode = 'AUTO';
+    if ((decodedPayload[6 + devicePos] & 3) === 3) {
+      mode = 'BOOST';
+    } else if (decodedPayload[6 + devicePos] & 1) {
+      mode = 'MANUAL';
+    } else if (decodedPayload[6 + devicePos] & 2) {
+      mode = 'VACATION';
+    }
 
-  var dataObj = {
-    rf_address: decodedPayload.slice(1, 4).toString('hex'),
-    valve: decodedPayload[7],
-    setpoint: (decodedPayload[8] / 2),
-    mode: mode,
-    dst_active: !!(decodedPayload[6] & 8),
-    gateway_known: !!(decodedPayload[6] & 16),
-    panel_locked: !!(decodedPayload[6] & 32),
-    link_error: !!(decodedPayload[6] & 64),
-    battery_low: !!(decodedPayload[6] & 128)
+    var deviceStatus = {
+      rf_address: decodedPayload.slice(1 + devicePos, 4 + devicePos).toString('hex'),
+      valve: decodedPayload[7 + devicePos],
+      setpoint: (decodedPayload[8 + devicePos] / 2),
+      mode: mode,
+      dst_active: !!(decodedPayload[6 + devicePos] & 8),
+      gateway_known: !!(decodedPayload[6 + devicePos] & 16),
+      panel_locked: !!(decodedPayload[6 + devicePos] & 32),
+      link_error: !!(decodedPayload[6 + devicePos] & 64),
+      battery_low: !!(decodedPayload[6 + devicePos] & 128)
+    };
+
+    if (mode === 'VACATION') {
+      var hours = parseInt(decodedPayload[11 + devicePos].toString(10)) / 2;
+      deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ('00' + (hours % 1)).substr(-2);
+    } else {
+      deviceStatus.temp = parseInt(decodedPayload[9 + devicePos].toString(2) + decodedPayload[10].toString(2), 2) / 10;
+    }
+
+    // cache status
+    if (deviceStatus.temp !== undefined && deviceStatus.temp !== 0) {
+      this.devicesStatus[deviceStatus.rf_address] = deviceStatus;
+      this.devicesStatus[deviceStatus.rf_address].lastUpdate = moment().format();
+    }
+    dataObj.push(deviceStatus);
   };
-
-  if (mode === 'VACATION') {
-    var hours = parseInt(decodedPayload[11].toString(10)) / 2;
-    dataObj.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ('00' + (hours % 1)).substr(-2);
-  } else {
-    dataObj.temp = parseInt(decodedPayload[9].toString(2) + decodedPayload[10].toString(2), 2) / 10;
-  }
-
-  // cache status
-  if (dataObj.temp !== undefined && dataObj.temp !== 0) {
-    this.devicesStatus[dataObj.rf_address] = dataObj;
-    this.devicesStatus[dataObj.rf_address].lastUpdate = moment().format();
-  }
 
   return dataObj;
 }
