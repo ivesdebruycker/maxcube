@@ -20,7 +20,7 @@ function MaxCube(ip, port) {
 
   this.rooms = [];
   this.devices = [];
-  this.devicesStatus = [];
+  this.devicesStatus = {};
 
   this.client = new net.Socket();
 
@@ -54,8 +54,10 @@ function MaxCube(ip, port) {
         // TODO: better not use anonymous function? (http://stackoverflow.com/a/5226333)
         (function(i) {
           setTimeout(function() {
-            log('Update trigger ' + self.devices[i].rf_address);
-            setTemperature.call(self, self.devices[i].rf_address, 'MANUAL', 11.5);
+            var rf_address = self.devices[i].rf_address;
+            var temp = self.devicesStatus[rf_address] ? self.devicesStatus[rf_address].setpoint_user + 0.5 : 1.5;
+            log('Update trigger ' + rf_address);
+            setTemperature.call(self, rf_address, 'MANUAL', temp);
           }, i * 15000);
         })(i);
       }
@@ -69,8 +71,10 @@ function MaxCube(ip, port) {
       if (self.devices[i] !== undefined && self.devices[i].devicetype === 1) {
         (function(i) {
           setTimeout(function() {
-            log('Update trigger reset ' + self.devices[i].rf_address);
-            setTemperature.call(self, self.devices[i].rf_address, 'MANUAL', 11);
+            var rf_address = self.devices[i].rf_address;
+            var temp = self.devicesStatus[rf_address] ? self.devicesStatus[rf_address].setpoint_user : 1;
+            log('Update trigger reset ' + rf_address);
+            setTemperature.call(self, rf_address, 'MANUAL', temp);
           }, i * 15000);
         })(i);
       }
@@ -216,6 +220,7 @@ function parseCommandMetadata (payload) {
 function parseCommandDeviceList (payload) {
   var dataObj = [];
   var decodedPayload = new Buffer(payload, 'base64');
+
   for (var i = 0; i < this.devices.length; i++) {
     var devicePos = i * 12;
 
@@ -248,11 +253,23 @@ function parseCommandDeviceList (payload) {
       deviceStatus.temp = parseInt(decodedPayload[9 + devicePos].toString(2) + decodedPayload[10 + devicePos].toString(2), 2) / 10;
     }
 
+    // set user setpoint
+    if (!this.devicesStatus[deviceStatus.rf_address] || !this.devicesStatus[deviceStatus.rf_address].setpoint_user || Math.abs(this.devicesStatus[deviceStatus.rf_address].setpoint_user - deviceStatus.setpoint) >= 1) {
+      deviceStatus.setpoint_user = deviceStatus.setpoint;
+      log('new user setpoint for device ' + deviceStatus.rf_address + ' is ' + deviceStatus.setpoint);
+    } else {
+      // copy old value
+      deviceStatus.setpoint_user = this.devicesStatus[deviceStatus.rf_address].setpoint_user;
+    }
+
     // cache status
+    this.devicesStatus[deviceStatus.rf_address] = deviceStatus;
+
+    // keep lastUpdate-timestamp only when temperature received
     if (deviceStatus.temp !== undefined && deviceStatus.temp !== 0) {
-      this.devicesStatus[deviceStatus.rf_address] = deviceStatus;
       this.devicesStatus[deviceStatus.rf_address].lastUpdate = moment().format();
     }
+
     dataObj.push(deviceStatus);
   };
 
