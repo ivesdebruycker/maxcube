@@ -109,6 +109,9 @@ MaxCube.prototype.close = function() {
 MaxCube.prototype.doBoost = function(rf_address, temperature) {
   return setTemperature.call(this, rf_address, 'BOOST', temperature);
 };
+MaxCube.prototype.setTemperature = function(rf_address, temperature) {
+  return setTemperature.call(this, rf_address, 'MANUAL', temperature);
+};
 
 function send (dataStr, callback) {
   if (!this.busy) {
@@ -261,14 +264,17 @@ function parseCommandDeviceList (payload) {
       // copy old value
       deviceStatus.setpoint_user = this.devicesStatus[deviceStatus.rf_address].setpoint_user;
     }
+ 
+    // overwrite lastUpdate-timestamp only when temperature received
+    if (deviceStatus.temp !== undefined && deviceStatus.temp !== 0) {
+      deviceStatus.lastUpdate = moment().format();
+    } else if (this.devicesStatus[deviceStatus.rf_address]) {
+      deviceStatus.lastUpdate = this.devicesStatus[deviceStatus.rf_address].lastUpdate;
+      deviceStatus.temp = this.devicesStatus[deviceStatus.rf_address].temp;
+    }
 
     // cache status
     this.devicesStatus[deviceStatus.rf_address] = deviceStatus;
-
-    // keep lastUpdate-timestamp only when temperature received
-    if (deviceStatus.temp !== undefined && deviceStatus.temp !== 0) {
-      this.devicesStatus[deviceStatus.rf_address].lastUpdate = moment().format();
-    }
 
     dataObj.push(deviceStatus);
   };
