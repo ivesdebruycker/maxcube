@@ -19,7 +19,7 @@ function MaxCube(ip, port) {
   this.memorySlots = 0;
 
   this.rooms = [];
-  this.devices = [];
+  this.devices = {};
   this.devicesStatus = {};
 
   this.client = new net.Socket();
@@ -213,7 +213,7 @@ function parseCommandMetadata (payload) {
         device_name: device_name,
         room_id: room_id,
       };
-      this.devices.push(deviceData);
+      this.devices[rf_address] = deviceData;
 
       currentIndex = currentIndex + 16 + device_name_length;
     }
@@ -224,7 +224,7 @@ function parseCommandDeviceList (payload) {
   var dataObj = [];
   var decodedPayload = new Buffer(payload, 'base64');
 
-  for (var i = 0; i < this.devices.length; i++) {
+  for (var i = 0; i < decodedPayload.length / 12; i++) {
     var devicePos = i * 12;
 
     // get mode
@@ -264,7 +264,7 @@ function parseCommandDeviceList (payload) {
       // copy old value
       deviceStatus.setpoint_user = this.devicesStatus[deviceStatus.rf_address].setpoint_user;
     }
- 
+
     // overwrite lastUpdate-timestamp only when temperature received
     if (deviceStatus.temp !== undefined && deviceStatus.temp !== 0) {
       deviceStatus.lastUpdate = moment().format();
@@ -299,6 +299,8 @@ function setTemperature (rfAdress, mode, temperature, untilDate) {
     log('Not connected');
     return;
   }
+
+  log('Set temperature on ' + rfAdress + ' to ' + temperature + ' and mode ' + mode);
 
   var self = this;
   var callback = function (dataObj) {
@@ -347,7 +349,9 @@ function setTemperature (rfAdress, mode, temperature, untilDate) {
     var reqTempHex = parseInt(reqTempBinary, 2).toString(16);
   }
 
-  var payload = new Buffer('000440000000' + rfAdress + '00' + reqTempHex + date_until + time_until, 'hex').toString('base64');
+  var room_id = ("00" + this.devices[rfAdress].room_id).substr(-2);
+
+  var payload = new Buffer('000440000000' + rfAdress + room_id + reqTempHex + date_until + time_until, 'hex').toString('base64');
   var data = 's:' + payload + '\r\n';
   send.call(this, data, callback);
 
