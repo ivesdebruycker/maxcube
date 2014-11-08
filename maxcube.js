@@ -2,6 +2,8 @@ var net = require('net');
 var schedule = require('node-schedule');
 var moment = require('moment');
 var fs = require('fs');
+var util = require('util');
+var EventEmitter = require('events').EventEmitter;
 
 var updateIntervalMins = 15;
 var heartbeatIntervalSecs = 20;
@@ -49,50 +51,51 @@ function MaxCube(ip, port) {
   // run every 15 mins, first time 8 min after hour
   ruleUpdateTrigger.minute = [new schedule.Range(8, 60, 15)];
   var updateTriggerJob = schedule.scheduleJob(ruleUpdateTrigger, function(){
-    for (var i = 0; i < self.devices.length; i++) {
-      if (self.devices[i] !== undefined && self.devices[i].devicetype === 1) {
+    var offset = 0;
+    Object.keys(self.devices).forEach(function(rf_address) {
+      if (self.devices[rf_address] !== undefined && self.devices[rf_address].devicetype === 1) {
         // TODO: better not use anonymous function? (http://stackoverflow.com/a/5226333)
-        (function(i) {
+        (function(rf_address) {
           setTimeout(function() {
-            var rf_address = self.devices[i].rf_address;
             var temp = self.devicesStatus[rf_address] ? self.devicesStatus[rf_address].setpoint_user + 0.5 : 1.5;
             log('Update trigger ' + rf_address);
             setTemperature.call(self, rf_address, 'MANUAL', temp);
-          }, i * 15000);
-        })(i);
+          }, offset++ * 15000);
+        })(rf_address);
       }
-    };
+    });
   });
 
   var ruleUpdateTriggerReset = new schedule.RecurrenceRule();
   ruleUpdateTriggerReset.minute = [new schedule.Range(10, 60, 15)];
   var updateTriggerResetJob = schedule.scheduleJob(ruleUpdateTriggerReset, function(){
-    for (var i = 0; i < self.devices.length; i++) {
-      if (self.devices[i] !== undefined && self.devices[i].devicetype === 1) {
-        (function(i) {
+    var offset = 0;
+    Object.keys(self.devices).forEach(function(rf_address) {
+      if (self.devices[rf_address] !== undefined && self.devices[rf_address].devicetype === 1) {
+        (function(rf_address) {
           setTimeout(function() {
-            var rf_address = self.devices[i].rf_address;
             var temp = self.devicesStatus[rf_address] ? self.devicesStatus[rf_address].setpoint_user : 1;
             log('Update trigger reset ' + rf_address);
             setTemperature.call(self, rf_address, 'MANUAL', temp);
-          }, i * 15000);
-        })(i);
+          }, offset * 15000);
+        })(rf_address);
       }
-    };
+    });
   });
 
   var ruleHeartbeat = new schedule.RecurrenceRule();
   ruleHeartbeat.second = [new schedule.Range(heartbeatIntervalSecs/2, 59, heartbeatIntervalSecs)];
   var heartbeatJob = schedule.scheduleJob(ruleHeartbeat, function(){
     log('Heartbeat');
-    doHeartbeat.call(self, function (dataObj) {
-      log('Status: ' + JSON.stringify(dataObj));
-    });
+    doHeartbeat.call(self, function (dataObj) {});
   });
 
   log('MaxCube initialized');
 
 }
+
+util.inherits(MaxCube, EventEmitter);
+
 // class methods
 MaxCube.prototype.getDeviceStatus = function(rf_address) {
   return this.devicesStatus[rf_address];
@@ -110,6 +113,7 @@ MaxCube.prototype.doBoost = function(rf_address, temperature) {
   return setTemperature.call(this, rf_address, 'BOOST', temperature);
 };
 MaxCube.prototype.setTemperature = function(rf_address, temperature) {
+  this.devicesStatus[rf_address].setpoint_user = temperature;
   return setTemperature.call(this, rf_address, 'MANUAL', temperature);
 };
 
@@ -167,6 +171,8 @@ function parseCommandHello (payload) {
 
   this.dutyCycle = dataObj.duty_cycle;
   this.memorySlots = dataObj.free_memory_slots;
+
+  this.emit('connected', dataObj);
 
   return dataObj;
 }
@@ -278,6 +284,8 @@ function parseCommandDeviceList (payload) {
 
     dataObj.push(deviceStatus);
   };
+
+  this.emit('statusUpdate', this.devicesStatus);
 
   return dataObj;
 }
