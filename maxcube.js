@@ -188,7 +188,7 @@ function parseCommandMetadata (payload) {
   for (var i = 0; i < room_count; i++) {
     var room_id = parseInt(decodedPayload[currentIndex].toString(10));
     var room_name_length = parseInt(decodedPayload[currentIndex + 1].toString(10));
-    var room_name = decodedPayload.slice(currentIndex + 2, currentIndex + 2 + room_name_length).toString('utf-8');
+    var room_name = String.fromCharCode.apply(null, decodedPayload.slice(currentIndex + 2, currentIndex + 2 + room_name_length));
     var group_rf_address = decodedPayload.slice(currentIndex + 2 + room_name_length, currentIndex + room_name_length + 5).toString('hex');
 
     var roomData = {
