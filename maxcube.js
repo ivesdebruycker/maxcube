@@ -224,6 +224,8 @@ function parseCommandMetadata (payload) {
       currentIndex = currentIndex + 16 + device_name_length;
     }
   }
+
+  this.emit('configurationUpdate', {rooms: this.rooms, devices: this.devices});
 }
 
 function parseCommandDeviceList (payload) {

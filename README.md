@@ -10,8 +10,15 @@ var MaxCube = require('maxcube');
 
 var myMaxCube = new MaxCube('192.168.1.123', '62910');
 
-setTimeout(function() {
-  console.log(myMaxCube.getDevices());
-  console.log(myMaxCube.getRooms());
-}, 20000);
+myMaxCube.once('connected', function (cubeStatus) {
+  console.log(cubeStatus);
+});
+
+myMaxCube.once('configurationUpdate', function (configuration) {
+  console.log(configuration);
+});
+
+myMaxCube.on('statusUpdate', function (devicesStatus) {
+  console.log(devicesStatus);
+});
 ```
