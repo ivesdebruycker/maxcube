@@ -261,7 +261,7 @@ function parseCommandDeviceList (payload) {
       var hours = parseInt(decodedPayload[11 + devicePos].toString(10)) / 2;
       deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ('00' + (hours % 1)).substr(-2);
     } else {
-      deviceStatus.temp = parseInt(decodedPayload[9 + devicePos].toString(2) + decodedPayload[10 + devicePos].toString(2), 2) / 10;
+      deviceStatus.temp = (decodedPayload[9 + devicePos]?25.5:0) + decodedPayload[10 + devicePos] / 10;
     }
 
     // set user setpoint
