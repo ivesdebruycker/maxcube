@@ -209,7 +209,7 @@ function parseCommandMetadata (payload) {
       var rf_address = decodedPayload.slice(currentIndex + 2, currentIndex + 5).toString('hex');
       var serialnumber = decodedPayload.slice(currentIndex + 5, currentIndex + 15).toString();
       var device_name_length = decodedPayload[currentIndex + 15];
-      var device_name = decodedPayload.slice(currentIndex + 16, currentIndex + 16 + device_name_length).toString('utf-8');
+      var device_name = String.fromCharCode.apply(null, decodedPayload.slice(currentIndex + 16, currentIndex + 16 + device_name_length));
       var room_id = decodedPayload[currentIndex + 16 + device_name_length];
 
       var deviceData = {
