@@ -254,6 +254,19 @@ function parseCommandDeviceList (payload) {
       valve: decodedPayload[7 + devicePos],
       setpoint: (decodedPayload[8 + devicePos] / 2),
       mode: mode,
+      /* byte 5 from http://www.domoticaforum.eu/viewtopic.php?f=66&t=6654
+5          1  12          bit 4     Valid              0=invalid;1=information provided is valid
+                          bit 3     Error              0=no; 1=Error occurred
+                          bit 2     Answer             0=an answer to a command,1=not an answer to a command
+                          bit 1     Status initialized 0=not initialized, 1=yes
+                               
+                          12  = 00010010b
+                              = Valid, Initialized
+*/
+      initialized: !!(decodedPayload[5 + devicePos] & (1 << 1)),
+      fromCmd: !!(decodedPayload[5 + devicePos] & (1 << 2)),
+      error: !!(decodedPayload[5 + devicePos] & (1 << 3)),
+      valid: !!(decodedPayload[5 + devicePos] & (1 << 4)),
       dst_active: !!(decodedPayload[6 + devicePos] & 8),
       gateway_known: !!(decodedPayload[6 + devicePos] & 16),
       panel_locked: !!(decodedPayload[6 + devicePos] & 32),
