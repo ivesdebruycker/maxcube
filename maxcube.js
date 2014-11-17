@@ -8,6 +8,10 @@ var EventEmitter = require('events').EventEmitter;
 var updateIntervalMins = 15;
 var heartbeatIntervalSecs = 20;
 
+function padLeft(nr, n, str){
+  return Array(n-String(nr).length+1).join(str||'0')+nr;
+}
+
 // Constructor
 function MaxCube(ip, port) {
   this.ip = ip;
@@ -258,8 +262,10 @@ function parseCommandDeviceList (payload) {
     };
 
     if (mode === 'VACATION') {
-      var hours = parseInt(decodedPayload[11 + devicePos].toString(10)) / 2;
-      deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ('00' + (hours % 1)).substr(-2);
+    // from http://sourceforge.net/p/fhem/code/HEAD/tree/trunk/fhem/FHEM/10_MAX.pm#l573
+      deviceStatus.date_until = 2000 + (decodedPayload[10 + devicePos] & 0x3F) + "-" + padLeft(((decodedPayload[9 + devicePos] & 0xE0) >> 4) | (decodedPayload[10 + devicePos] >> 7), 2) + "-" + padLeft(decodedPayload[9 + devicePos] & 0x1F, 2);
+      var hours = decodedPayload[11 + devicePos] & 0x3F) / 2;
+      deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ((hours % 1) ? "30" : "00");
     } else {
       deviceStatus.temp = (decodedPayload[9 + devicePos]?25.5:0) + decodedPayload[10 + devicePos] / 10;
     }
