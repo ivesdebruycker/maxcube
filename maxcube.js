@@ -181,13 +181,13 @@ function parseCommandMetadata (payload) {
   var payloadArr = payload.split(",");
 
   var decodedPayload = new Buffer(payloadArr[2], 'base64');
-  var room_count = parseInt(decodedPayload[2].toString(10));
+  var room_count = decodedPayload[2];
   var currentIndex = 3;
 
   // parse rooms
   for (var i = 0; i < room_count; i++) {
-    var room_id = parseInt(decodedPayload[currentIndex].toString(10));
-    var room_name_length = parseInt(decodedPayload[currentIndex + 1].toString(10));
+    var room_id = decodedPayload[currentIndex];
+    var room_name_length = decodedPayload[currentIndex + 1];
     var room_name = String.fromCharCode.apply(null, decodedPayload.slice(currentIndex + 2, currentIndex + 2 + room_name_length));
     var group_rf_address = decodedPayload.slice(currentIndex + 2 + room_name_length, currentIndex + room_name_length + 5).toString('hex');
 
@@ -203,14 +203,14 @@ function parseCommandMetadata (payload) {
 
   // parse devices
   if (currentIndex < decodedPayload.length) {
-    var device_count = parseInt(decodedPayload[currentIndex].toString(10));
+    var device_count = decodedPayload[currentIndex];
     for (var i = 0; i < device_count; i++) {
-      var devicetype = parseInt(decodedPayload[currentIndex + 1].toString(10));
+      var devicetype = decodedPayload[currentIndex + 1];
       var rf_address = decodedPayload.slice(currentIndex + 2, currentIndex + 5).toString('hex');
       var serialnumber = decodedPayload.slice(currentIndex + 5, currentIndex + 15).toString();
-      var device_name_length = parseInt(decodedPayload[currentIndex + 15].toString(10));
+      var device_name_length = decodedPayload[currentIndex + 15];
       var device_name = decodedPayload.slice(currentIndex + 16, currentIndex + 16 + device_name_length).toString('utf-8');
-      var room_id = parseInt(decodedPayload[currentIndex + 16 + device_name_length].toString(10));
+      var room_id = decodedPayload[currentIndex + 16 + device_name_length];
 
       var deviceData = {
         devicetype: devicetype,
