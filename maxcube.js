@@ -12,6 +12,21 @@ function padLeft(nr, n, str){
   return Array(n-String(nr).length+1).join(str||'0')+nr;
 }
 
+/*  Device type:
+0       Cube
+1       Heating Thermostat
+2       Heating Thermostat Plus
+3       Wall mounted Thermostat
+4       Shutter contact
+5       Push Button   
+*/
+var EQ3MAX_DEV_TYPE_CUBE = 0;
+var EQ3MAX_DEV_TYPE_THERMOSTAT = 1;
+var EQ3MAX_DEV_TYPE_THERMOSTAT_PLUS = 2;
+var EQ3MAX_DEV_TYPE_WALLTHERMOSTAT = 3;
+var EQ3MAX_DEV_TYPE_SHUTTER_CONTACT = 4;
+var EQ3MAX_DEV_TYPE_PUSH_BUTTON = 5;
+
 // Constructor
 function MaxCube(ip, port) {
   this.ip = ip;
@@ -236,38 +251,51 @@ function parseCommandDeviceList (payload) {
   var dataObj = [];
   var decodedPayload = new Buffer(payload, 'base64');
 
-  for (var i = 0; i < decodedPayload.length / 12; i++) {
-    var devicePos = i * 12;
+  while(decodedPayload.length > 0) {
+	var pllen = decodedPayload[0];
 
     // get mode
     var mode = 'AUTO';
-    if ((decodedPayload[6 + devicePos] & 3) === 3) {
+    if ((decodedPayload[6] & 3) === 3) {
       mode = 'BOOST';
-    } else if (decodedPayload[6 + devicePos] & 1) {
+    } else if (decodedPayload[6] & 1) {
       mode = 'MANUAL';
-    } else if (decodedPayload[6 + devicePos] & 2) {
+    } else if (decodedPayload[6] & 2) {
       mode = 'VACATION';
     }
 
     var deviceStatus = {
-      rf_address: decodedPayload.slice(1 + devicePos, 4 + devicePos).toString('hex'),
-      valve: decodedPayload[7 + devicePos],
-      setpoint: (decodedPayload[8 + devicePos] / 2),
+      rf_address: decodedPayload.slice(1, 4).toString('hex'),
+      valve: decodedPayload[7],
+      setpoint: (decodedPayload[8] / 2),
       mode: mode,
-      dst_active: !!(decodedPayload[6 + devicePos] & 8),
-      gateway_known: !!(decodedPayload[6 + devicePos] & 16),
-      panel_locked: !!(decodedPayload[6 + devicePos] & 32),
-      link_error: !!(decodedPayload[6 + devicePos] & 64),
-      battery_low: !!(decodedPayload[6 + devicePos] & 128)
+      /* byte 5 from http://www.domoticaforum.eu/viewtopic.php?f=66&t=6654
+5          1  12          bit 4     Valid              0=invalid;1=information provided is valid
+                          bit 3     Error              0=no; 1=Error occurred
+                          bit 2     Answer             0=an answer to a command,1=not an answer to a command
+                          bit 1     Status initialized 0=not initialized, 1=yes
+                               
+                          12  = 00010010b
+                              = Valid, Initialized
+*/
+      initialized: !!(decodedPayload[5] & (1 << 1)),
+      fromCmd: !!(decodedPayload[5] & (1 << 2)),
+      error: !!(decodedPayload[5] & (1 << 3)),
+      valid: !!(decodedPayload[5] & (1 << 4)),
+      dst_active: !!(decodedPayload[6] & 8),
+      gateway_known: !!(decodedPayload[6] & 16),
+      panel_locked: !!(decodedPayload[6] & 32),
+      link_error: !!(decodedPayload[6] & 64),
+      battery_low: !!(decodedPayload[6] & 128)
     };
 
     if (mode === 'VACATION') {
     // from http://sourceforge.net/p/fhem/code/HEAD/tree/trunk/fhem/FHEM/10_MAX.pm#l573
-      deviceStatus.date_until = 2000 + (decodedPayload[10 + devicePos] & 0x3F) + "-" + padLeft(((decodedPayload[9 + devicePos] & 0xE0) >> 4) | (decodedPayload[10 + devicePos] >> 7), 2) + "-" + padLeft(decodedPayload[9 + devicePos] & 0x1F, 2);
-      var hours = (decodedPayload[11 + devicePos] & 0x3F) / 2;
+      deviceStatus.date_until = 2000 + (decodedPayload[10] & 0x3F) + "-" + padLeft(((decodedPayload[9] & 0xE0) >> 4) | (decodedPayload[10] >> 7), 2) + "-" + padLeft(decodedPayload[9] & 0x1F, 2);
+      var hours = (decodedPayload[11] & 0x3F) / 2;
       deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ((hours % 1) ? "30" : "00");
     } else {
-      deviceStatus.temp = (decodedPayload[9 + devicePos]?25.5:0) + decodedPayload[10 + devicePos] / 10;
+      deviceStatus.temp = (decodedPayload[9]?25.5:0) + decodedPayload[10] / 10;
     }
 
     // set user setpoint
@@ -291,6 +319,7 @@ function parseCommandDeviceList (payload) {
     this.devicesStatus[deviceStatus.rf_address] = deviceStatus;
 
     dataObj.push(deviceStatus);
+    decodedPayload = decodedPayload.slice(pllen+1);
   };
 
   this.emit('statusUpdate', this.devicesStatus);
