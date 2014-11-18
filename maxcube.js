@@ -12,6 +12,21 @@ function padLeft(nr, n, str){
   return Array(n-String(nr).length+1).join(str||'0')+nr;
 }
 
+/*  Device type:
+0       Cube
+1       Heating Thermostat
+2       Heating Thermostat Plus
+3       Wall mounted Thermostat
+4       Shutter contact
+5       Push Button   
+*/
+var EQ3MAX_DEV_TYPE_CUBE = 0;
+var EQ3MAX_DEV_TYPE_THERMOSTAT = 1;
+var EQ3MAX_DEV_TYPE_THERMOSTAT_PLUS = 2;
+var EQ3MAX_DEV_TYPE_WALLTHERMOSTAT = 3;
+var EQ3MAX_DEV_TYPE_SHUTTER_CONTACT = 4;
+var EQ3MAX_DEV_TYPE_PUSH_BUTTON = 5;
+
 // Constructor
 function MaxCube(ip, port) {
   this.ip = ip;
