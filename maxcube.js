@@ -8,6 +8,14 @@ var EventEmitter = require('events').EventEmitter;
 var updateIntervalMins = 15;
 var heartbeatIntervalSecs = 20;
 
+// Device types
+var EQ3MAX_DEV_TYPE_CUBE = 0;
+var EQ3MAX_DEV_TYPE_THERMOSTAT = 1;
+var EQ3MAX_DEV_TYPE_THERMOSTAT_PLUS = 2;
+var EQ3MAX_DEV_TYPE_WALLTHERMOSTAT = 3;
+var EQ3MAX_DEV_TYPE_SHUTTER_CONTACT = 4;
+var EQ3MAX_DEV_TYPE_PUSH_BUTTON = 5;
+
 function padLeft(nr, n, str){
   return Array(n-String(nr).length+1).join(str||'0')+nr;
 }
@@ -343,6 +351,19 @@ function doHeartbeat (callback) {
 }
 
 function decodeDevice (payload) {
+  var rf_address = payload.slice(1, 4).toString('hex');
+  switch (this.devices[rf_address].devicetype) {
+    case EQ3MAX_DEV_TYPE_THERMOSTAT:
+      return decodeDeviceThermostat.call(this, payload);
+      break;
+    default:
+      log('Decoding device of type ' + this.devices[rf_address].devicetype + ' not yet implemented.');
+  }
+
+  return {rf_address: rf_address};
+}
+
+function decodeDeviceThermostat (payload) {
   /*
     source: http://www.domoticaforum.eu/viewtopic.php?f=66&t=6654
     Start Length  Value       Description
