@@ -236,98 +236,17 @@ function parseCommandDeviceList (payload) {
   var dataObj = [];
   var decodedPayload = new Buffer(payload, 'base64');
 
-  for (var i = 0; i < decodedPayload.length / 12; i++) {
-    var devicePos = i * 12;
+  while (decodedPayload.length > 0) {
+    if (decodedPayload.length >= decodedPayload[0]) {
+      var deviceStatus = decodeDevice.call(this, decodedPayload);
 
-    /*
-    source: http://www.domoticaforum.eu/viewtopic.php?f=66&t=6654
-    Start Length  Value       Description
-    ==================================================================
-    0        1    0B          Length of data: 0B = 11(decimal) = 11 bytes
-    1        3    003508      RF address
-    4        1    00          ?
-    5        1    12          bit 4     Valid              0=invalid;1=information provided is valid
-                              bit 3     Error              0=no; 1=Error occurred
-                              bit 2     Answer             0=an answer to a command,1=not an answer to a command
-                              bit 1     Status initialized 0=not initialized, 1=yes
+      // cache status
+      this.devicesStatus[deviceStatus.rf_address] = deviceStatus;
 
-                              12  = 00010010b
-                                  = Valid, Initialized
+      dataObj.push(deviceStatus);
 
-    6       1     1A          bit 7     Battery       1=Low
-                              bit 6     Linkstatus    0=OK,1=error
-                              bit 5     Panel         0=unlocked,1=locked
-                              bit 4     Gateway       0=unknown,1=known
-                              bit 3     DST setting   0=inactive,1=active
-                              bit 2     Not used
-                              bit 1,0   Mode         00=auto/week schedule
-                                                     01=Manual
-                                                     10=Vacation
-                                                     11=Boost
-                              1A  = 00011010b
-                                  = Battery OK, Linkstatus OK, Panel unlocked, Gateway known, DST active, Mode Vacation.
-
-    7       1     20          Valve position in %
-    8       1     2C          Temperature setpoint, 2Ch = 44d; 44/2=22 deg. C
-    9       2     858B        Date until (05-09-2011) (see Encoding/Decoding date/time)
-    B       1     2E          Time until (23:00) (see Encoding/Decoding date/time)
-    */
-
-    var mode = 'AUTO';
-    if ((decodedPayload[6 + devicePos] & 3) === 3) {
-      mode = 'BOOST';
-    } else if (decodedPayload[6 + devicePos] & (1 << 0)) {
-      mode = 'MANUAL';
-    } else if (decodedPayload[6 + devicePos] & (1 << 1)) {
-      mode = 'VACATION';
+      decodedPayload = decodedPayload.slice(decodedPayload[0] + 1);
     }
-
-    var deviceStatus = {
-      rf_address: decodedPayload.slice(1 + devicePos, 4 + devicePos).toString('hex'),
-      initialized: !!(decodedPayload[5 + devicePos] & (1 << 1)),
-      fromCmd: !!(decodedPayload[5 + devicePos] & (1 << 2)),
-      error: !!(decodedPayload[5 + devicePos] & (1 << 3)),
-      valid: !!(decodedPayload[5 + devicePos] & (1 << 4)),
-      mode: mode,
-      dst_active: !!(decodedPayload[6 + devicePos] & (1 << 3)),
-      gateway_known: !!(decodedPayload[6 + devicePos] & (1 << 4)),
-      panel_locked: !!(decodedPayload[6 + devicePos] & (1 << 5)),
-      link_error: !!(decodedPayload[6 + devicePos] & (1 << 6)),
-      battery_low: !!(decodedPayload[6 + devicePos] & (1 << 7)),
-      valve: decodedPayload[7 + devicePos],
-      setpoint: (decodedPayload[8 + devicePos] / 2)
-    };
-
-    if (mode === 'VACATION') {
-    // from http://sourceforge.net/p/fhem/code/HEAD/tree/trunk/fhem/FHEM/10_MAX.pm#l573
-      deviceStatus.date_until = 2000 + (decodedPayload[10 + devicePos] & 0x3F) + "-" + padLeft(((decodedPayload[9 + devicePos] & 0xE0) >> 4) | (decodedPayload[10 + devicePos] >> 7), 2) + "-" + padLeft(decodedPayload[9 + devicePos] & 0x1F, 2);
-      var hours = (decodedPayload[11 + devicePos] & 0x3F) / 2;
-      deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ((hours % 1) ? "30" : "00");
-    } else {
-      deviceStatus.temp = (decodedPayload[9 + devicePos]?25.5:0) + decodedPayload[10 + devicePos] / 10;
-    }
-
-    // set user setpoint
-    if (!this.devicesStatus[deviceStatus.rf_address] || !this.devicesStatus[deviceStatus.rf_address].setpoint_user || Math.abs(this.devicesStatus[deviceStatus.rf_address].setpoint_user - deviceStatus.setpoint) >= 1) {
-      deviceStatus.setpoint_user = deviceStatus.setpoint;
-      log('new user setpoint for device ' + deviceStatus.rf_address + ' is ' + deviceStatus.setpoint);
-    } else {
-      // copy old value
-      deviceStatus.setpoint_user = this.devicesStatus[deviceStatus.rf_address].setpoint_user;
-    }
-
-    // overwrite lastUpdate-timestamp only when temperature received
-    if (deviceStatus.temp !== undefined && deviceStatus.temp !== 0) {
-      deviceStatus.lastUpdate = moment().format();
-    } else if (this.devicesStatus[deviceStatus.rf_address]) {
-      deviceStatus.lastUpdate = this.devicesStatus[deviceStatus.rf_address].lastUpdate;
-      deviceStatus.temp = this.devicesStatus[deviceStatus.rf_address].temp;
-    }
-
-    // cache status
-    this.devicesStatus[deviceStatus.rf_address] = deviceStatus;
-
-    dataObj.push(deviceStatus);
   };
 
   this.emit('statusUpdate', this.devicesStatus);
@@ -421,6 +340,95 @@ function doHeartbeat (callback) {
   } else {
     send.call(self, 'l:\r\n', callback);
   }
+}
+
+function decodeDevice (payload) {
+  /*
+    source: http://www.domoticaforum.eu/viewtopic.php?f=66&t=6654
+    Start Length  Value       Description
+    ==================================================================
+    0        1    0B          Length of data: 0B = 11(decimal) = 11 bytes
+    1        3    003508      RF address
+    4        1    00          ?
+    5        1    12          bit 4     Valid              0=invalid;1=information provided is valid
+                              bit 3     Error              0=no; 1=Error occurred
+                              bit 2     Answer             0=an answer to a command,1=not an answer to a command
+                              bit 1     Status initialized 0=not initialized, 1=yes
+
+                              12  = 00010010b
+                                  = Valid, Initialized
+
+    6       1     1A          bit 7     Battery       1=Low
+                              bit 6     Linkstatus    0=OK,1=error
+                              bit 5     Panel         0=unlocked,1=locked
+                              bit 4     Gateway       0=unknown,1=known
+                              bit 3     DST setting   0=inactive,1=active
+                              bit 2     Not used
+                              bit 1,0   Mode         00=auto/week schedule
+                                                     01=Manual
+                                                     10=Vacation
+                                                     11=Boost
+                              1A  = 00011010b
+                                  = Battery OK, Linkstatus OK, Panel unlocked, Gateway known, DST active, Mode Vacation.
+
+    7       1     20          Valve position in %
+    8       1     2C          Temperature setpoint, 2Ch = 44d; 44/2=22 deg. C
+    9       2     858B        Date until (05-09-2011) (see Encoding/Decoding date/time)
+    B       1     2E          Time until (23:00) (see Encoding/Decoding date/time)
+    */
+
+    var mode = 'AUTO';
+    if ((payload[6] & 3) === 3) {
+      mode = 'BOOST';
+    } else if (payload[6] & (1 << 0)) {
+      mode = 'MANUAL';
+    } else if (payload[6] & (1 << 1)) {
+      mode = 'VACATION';
+    }
+
+    var deviceStatus = {
+      rf_address: payload.slice(1, 4).toString('hex'),
+      initialized: !!(payload[5] & (1 << 1)),
+      fromCmd: !!(payload[5] & (1 << 2)),
+      error: !!(payload[5] & (1 << 3)),
+      valid: !!(payload[5] & (1 << 4)),
+      mode: mode,
+      dst_active: !!(payload[6] & (1 << 3)),
+      gateway_known: !!(payload[6] & (1 << 4)),
+      panel_locked: !!(payload[6] & (1 << 5)),
+      link_error: !!(payload[6] & (1 << 6)),
+      battery_low: !!(payload[6] & (1 << 7)),
+      valve: payload[7],
+      setpoint: (payload[8] / 2)
+    };
+
+    if (mode === 'VACATION') {
+    // from http://sourceforge.net/p/fhem/code/HEAD/tree/trunk/fhem/FHEM/10_MAX.pm#l573
+      deviceStatus.date_until = 2000 + (payload[10] & 0x3F) + "-" + padLeft(((payload[9] & 0xE0) >> 4) | (payload[10] >> 7), 2) + "-" + padLeft(payload[9] & 0x1F, 2);
+      var hours = (payload[11] & 0x3F) / 2;
+      deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ((hours % 1) ? "30" : "00");
+    } else {
+      deviceStatus.temp = (payload[9]?25.5:0) + payload[10] / 10;
+    }
+
+    // set user setpoint
+    if (!this.devicesStatus[deviceStatus.rf_address] || !this.devicesStatus[deviceStatus.rf_address].setpoint_user || Math.abs(this.devicesStatus[deviceStatus.rf_address].setpoint_user - deviceStatus.setpoint) >= 1) {
+      deviceStatus.setpoint_user = deviceStatus.setpoint;
+      log('new user setpoint for device ' + deviceStatus.rf_address + ' is ' + deviceStatus.setpoint);
+    } else {
+      // copy old value
+      deviceStatus.setpoint_user = this.devicesStatus[deviceStatus.rf_address].setpoint_user;
+    }
+
+    // overwrite lastUpdate-timestamp only when temperature received
+    if (deviceStatus.temp !== undefined && deviceStatus.temp !== 0) {
+      deviceStatus.lastUpdate = moment().format();
+    } else if (this.devicesStatus[deviceStatus.rf_address]) {
+      deviceStatus.lastUpdate = this.devicesStatus[deviceStatus.rf_address].lastUpdate;
+      deviceStatus.temp = this.devicesStatus[deviceStatus.rf_address].temp;
+    }
+
+    return deviceStatus;
 }
 
 function log (message) {
