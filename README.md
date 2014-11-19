@@ -14,7 +14,11 @@ myMaxCube.once('connected', function (cubeStatus) {
   console.log(cubeStatus);
 });
 
-myMaxCube.once('configurationUpdate', function (configuration) {
+myMaxCube.once('metadataUpdate', function (metadata) {
+  console.log(metadata);
+});
+
+myMaxCube.on('configurationUpdate', function (configuration) {
   console.log(configuration);
 });
 
