@@ -146,21 +146,22 @@ function send (dataStr, callback) {
 function parseCommand (type, payload) {
   switch (type) {
     case 'H':
-    return parseCommandHello.call(this, payload);
-    break;
+      return parseCommandHello.call(this, payload);
+      break;
     case 'M':
-    return parseCommandMetadata.call(this, payload);
-    break;
+      return parseCommandMetadata.call(this, payload);
+      break;
     case 'C':
-    break;
+      return parseCommandConfiguration.call(this, payload);
+      break;
     case 'L':
-    return parseCommandDeviceList.call(this, payload);
-    break;
+      return parseCommandDeviceList.call(this, payload);
+      break;
     case 'S':
-    return parseCommandSendDevice.call(this, payload);
-    break;
+      return parseCommandSendDevice.call(this, payload);
+      break;
     default:
-    log('Unknown command type: ' + type);
+      log('Unknown command type: ' + type);
   }
 }
 
@@ -237,7 +238,61 @@ function parseCommandMetadata (payload) {
     }
   }
 
-  this.emit('configurationUpdate', {rooms: this.rooms, devices: this.devices});
+  this.emit('metadataUpdate', {rooms: this.rooms, devices: this.devices});
+}
+
+function parseCommandConfiguration (payload) {
+  /*
+  Start Length  Value       Description
+  ==================================================================
+  00         1  D2          Length of data: D2 = 210(decimal) = 210 bytes
+  01         3  003508      RF address
+  04         1  01          Device Type
+  05         3  0114FF      ?
+  08        10  IEQ0109125  Serial Number
+  18         1  28          Comfort Temperature
+  19         1  28          Eco Temperature
+  20         1  3D          MaxSetPointTemperature
+  21         1  09          MinSetPointTemperature
+  22         1  07          Temperature Offset * 2
+                            The default value is 3,5, which means the offset = 0 degrees.
+                            The offset is adjustable between -3,5 and +3,5 degrees,
+                            which results in a value in this response between 0 and 7 (decoded already)
+  23         1  28          Window Open Temperature
+  24         1  03          Window  Open Duration
+  25         1  30          Boost Duration and Boost Valve Value
+                            The 3 MSB bits gives the duration, the 5 LSB bits the Valve Value%.
+                            Duration: With 3 bits, the possible values (Dec) are 0 to 7, 0 is not used.
+                            The duration in Minutes is: if Dec value = 7, then 30 minutes, else Dec value * 5 minutes
+                            Valve Value: dec value 5 LSB bits * 5 gives Valve Value in %
+  26         1  0C          Decalcification: Day of week and Time
+                            In bits: DDDHHHHH
+                            The three most significant bits (MSB) are presenting the day, Saturday = 1, Friday = 7
+                            The five least significant bits (LSB) are presenting the time (in hours)
+  27         1  FF          Maximum Valve setting; *(100/255) to get in %
+  1C         1  00          Valve Offset ; *(100/255) to get in %
+  1D         ?  44 48 ...   Weekly program (see The weekly program)
+  */
+
+  var payloadArr = payload.split(",");
+  var rf_address = payloadArr[0].slice(0, 6).toString('hex');
+
+  var decodedPayload = new Buffer(payloadArr[1], 'base64');
+  var length = decodedPayload[0];
+
+  var dataObj = {
+    rf_address: decodedPayload.slice(1, 4).toString('hex'),
+    device_type: decodedPayload[4],
+    serial_number: String.fromCharCode.apply(null, decodedPayload.slice(8, 18)),
+    comfort_temp: decodedPayload[18] / 2,
+    eco_temp: decodedPayload[19] / 2,
+    max_setpoint_temp: decodedPayload[20] / 2,
+    min_setpoint_temp: decodedPayload[21] / 2,
+    temp_offset: (decodedPayload[22] / 2) - 3.5,
+    max_valve: decodedPayload[27] * (100/255)
+  };
+
+  this.emit('configurationUpdate', dataObj);
 }
 
 function parseCommandDeviceList (payload) {
