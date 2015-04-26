@@ -131,9 +131,9 @@ MaxCube.prototype.setTemperature = function(rf_address, temperature) {
   this.devicesStatus[rf_address].setpoint_user = temperature;
   return setTemperature.call(this, rf_address, 'MANUAL', temperature);
 };
-MaxCube.prototype.setVacationTemperature = function(rf_address, temperature,untilDate) {
+MaxCube.prototype.setVacationTemperature = function(rf_address, temperature, untilDate) {
   this.devicesStatus[rf_address].setpoint_user = temperature;
-  return setTemperature.call(this, rf_address, 'VACATION', temperature);
+  return setTemperature.call(this, rf_address, 'VACATION', temperature, untilDate);
 };
 
 function send (dataStr, callback) {
