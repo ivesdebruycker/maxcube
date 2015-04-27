@@ -62,7 +62,7 @@ function MaxCube(ip, port) {
   var ruleUpdateTrigger = new schedule.RecurrenceRule();
   // run every 15 mins, first time 8 min after hour
   ruleUpdateTrigger.minute = [new schedule.Range(8, 60, 15)];
-  var updateTriggerJob = schedule.scheduleJob(ruleUpdateTrigger, function(){
+  this.updateTriggerJob = schedule.scheduleJob(ruleUpdateTrigger, function(){
     var offset = 0;
     Object.keys(self.devices).forEach(function(rf_address) {
       if (self.devices[rf_address] !== undefined && self.devices[rf_address].devicetype === 1) {
@@ -80,7 +80,7 @@ function MaxCube(ip, port) {
 
   var ruleUpdateTriggerReset = new schedule.RecurrenceRule();
   ruleUpdateTriggerReset.minute = [new schedule.Range(10, 60, 15)];
-  var updateTriggerResetJob = schedule.scheduleJob(ruleUpdateTriggerReset, function(){
+  this.updateTriggerResetJob = schedule.scheduleJob(ruleUpdateTriggerReset, function(){
     var offset = 0;
     Object.keys(self.devices).forEach(function(rf_address) {
       if (self.devices[rf_address] !== undefined && self.devices[rf_address].devicetype === 1) {
@@ -97,7 +97,7 @@ function MaxCube(ip, port) {
 
   var ruleHeartbeat = new schedule.RecurrenceRule();
   ruleHeartbeat.second = [new schedule.Range(heartbeatIntervalSecs/2, 59, heartbeatIntervalSecs)];
-  var heartbeatJob = schedule.scheduleJob(ruleHeartbeat, function(){
+  this.heartbeatJob = schedule.scheduleJob(ruleHeartbeat, function(){
     log('Heartbeat');
     doHeartbeat.call(self, function (dataObj) {});
   });
@@ -120,6 +120,9 @@ MaxCube.prototype.getRooms = function() {
 };
 MaxCube.prototype.close = function() {
   this.client.destroy();
+  schedule.cancelJob(this.heartbeatJob);
+  schedule.cancelJob(this.updateTriggerResetJob);
+  schedule.cancelJob(this.updateTriggerJob);
 };
 MaxCube.prototype.doBoost = function(rf_address, temperature) {
   return setTemperature.call(this, rf_address, 'BOOST', temperature);
@@ -127,6 +130,10 @@ MaxCube.prototype.doBoost = function(rf_address, temperature) {
 MaxCube.prototype.setTemperature = function(rf_address, temperature) {
   this.devicesStatus[rf_address].setpoint_user = temperature;
   return setTemperature.call(this, rf_address, 'MANUAL', temperature);
+};
+MaxCube.prototype.setVacationTemperature = function(rf_address, temperature, untilDate) {
+  this.devicesStatus[rf_address].setpoint_user = temperature;
+  return setTemperature.call(this, rf_address, 'VACATION', temperature, untilDate);
 };
 
 function send (dataStr, callback) {
@@ -362,9 +369,9 @@ function setTemperature (rfAdress, mode, temperature, untilDate) {
     modeBin = '10';
     var momentDate = moment(untilDate);
     var year_until = ('0000000' + (momentDate.get('year') - 2000).toString(2)).substr(-7);
-    var month_until = ('0000' + momentDate.get('month').toString(2)).substr(-4);
-    var day_until = ('00000' + momentDate.get('day').toString(2)).substr(-5);
-    date_until = ('0000' + (month_until.substr(0,3) + day_until + month_until.substr(-1) + year_until).toString(16)).substr(-4);
+    var month_until = ('0000' + (momentDate.get('month')).toString(2)).substr(-4);
+    var day_until = ('00000' + momentDate.get('date').toString(2)).substr(-5);
+    date_until = parseInt(('0000' + (month_until.substr(0,3) + day_until + month_until.substr(-1) + year_until)),2).toString(16).substr(-4);
     time_until = ('00' + Math.round((momentDate.get('hour') + (momentDate.get('minute') / 60)) * 2).toString(16)).substr(-2);
     break;
     case 'BOOST':
