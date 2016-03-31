@@ -1,18 +1,18 @@
 {
   "name": "maxcube",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "eQ-3 Max! Cube interface",
   "main": "maxcube.js",
   "dependencies": {
-    "moment": "^2.6.0",
-    "node-schedule": "~0.1.13"
+    "bluebird": "^3.3.4",
+    "vorpal": "^1.10.8"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/ivesdebruycker/maxcube.git"
   },
   "author": "Ives De Bruycker",
-  "license": "MIT",
+  "license": "ISC",
   "bugs": {
     "url": "https://github.com/ivesdebruycker/maxcube/issues"
   }
