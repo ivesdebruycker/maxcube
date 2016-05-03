@@ -46,17 +46,19 @@ function initSocket () {
 function connect () {
   var self = this;
 
-  return new Promise(function(resolve, reject) {
-    if (!self.isConnected) {
+  if (self.isConnected) {
+    self.connectionPromise = Promise.resolve();
+  } else if (!(self.connectionPromise && self.connectionPromise.isPending())) {
+    self.connectionPromise = new Promise(function(resolve, reject) {
       self.socket.connect(self.port, self.ip, function() {
         self.isConnected = true;
         self.emit('connected');
         resolve();
       });
-    } else {
-      resolve();
-    }
-  });
+    });
+  }
+
+  return self.connectionPromise;
 }
 
 function close () {
