@@ -201,7 +201,7 @@ function decodeDevice (payload) {
     case 8: deviceType = EQ3MAX_DEV_TYPE_PUSH_BUTTON; break;
     case 11: deviceType = EQ3MAX_DEV_TYPE_THERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
     case 12: deviceType = EQ3MAX_DEV_TYPE_WALLTHERMOSTAT; break;
-    default: deviceType = EQ3MAX_DEV_TYPE_UNKOWN; break;
+    default: deviceType = EQ3MAX_DEV_TYPE_UNKNOWN; break;
   }
 
   deviceStatus.rf_address = payload.slice(1, 4).toString('hex');
