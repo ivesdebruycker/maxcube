@@ -1,7 +1,9 @@
 maxcube
 =======
 
-eQ-3 Max! Cube interface
+eQ-3 Max! Cube interface library.
+
+For a cli, see [maxcube-cli](https://github.com/ivesdebruycker/maxcube-cli). If you want to integrate your MAX! Cube in node-red, use [node-red-node-maxcube](https://github.com/ivesdebruycker/node-red-node-maxcube).
 
 
 ## Example
@@ -70,3 +72,7 @@ myMaxCube.setTemperature('0dd6b5', 18).then(function (success) {
   }
 });
 ```
+
+## Related projects
+* [maxcube-cli](https://github.com/ivesdebruycker/maxcube-cli): a command-line interface for eQ-3 Max! Cube
+* [node-red-node-maxcube](https://github.com/ivesdebruycker/node-red-node-maxcube): a node for interfacing the eQ-3 Max! Cube using [node-red](https://github.com/node-red/node-red)
