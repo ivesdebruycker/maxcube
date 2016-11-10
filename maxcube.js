@@ -128,10 +128,10 @@ MaxCube.prototype.flushDeviceCache = function() {
   return send.call(this, 'm:\r\n');
 };
 
-MaxCube.prototype.setTemperature = function(rf_address, degrees) {
+MaxCube.prototype.setTemperature = function(rf_address, degrees, mode, untilDate) {
   var self = this;
-  degrees = degrees < 2 ? 2 : degrees;
-  var command = MaxCubeCommandFactory.generateSetTemperatureCommand (rf_address, this.deviceCache[rf_address].room_id, 'MANUAL', degrees);
+  degrees = Math.max(2, degrees);
+  var command = MaxCubeCommandFactory.generateSetTemperatureCommand (rf_address, this.deviceCache[rf_address].room_id, mode || 'MANUAL', degrees, untilDate);
   return send.call(this, command, 'S').then(function (res) {
     self.commStatus.duty_cycle = res.duty_cycle;
     self.commStatus.free_memory_slots = res.free_memory_slots;

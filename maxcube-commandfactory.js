@@ -39,7 +39,7 @@ function generateSetTemperatureCommand (rfAdress, room_id, mode, temperature, un
     var reqTempHex = (0).toString(16);
   } else {
     // leading zero padding
-    var reqTempBinary = modeBin + ("000000" + (temperature * 2).toString(2)).substr(-6);
+    var reqTempBinary = modeBin + ("000000" + ((temperature || 0) * 2).toString(2)).substr(-6);
     // to hex string
     var reqTempHex = parseInt(reqTempBinary, 2).toString(16);
   }

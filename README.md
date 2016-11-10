@@ -61,8 +61,10 @@ myMaxCube.getDeviceStatus().then(function (devices) {
   });
 });
 ```
-### setTemperature(rf_address, degrees)
+### setTemperature(rf_address, degrees, (optional) mode, (only for vacation mode) untilDate)
 Set setpoint temperature for specified device and returns a promise.
+Possible modes are: 'AUTO', 'MANUAL', 'BOOST' and 'VACATION'
+If no mode is given, 'MANUAL' is presumed.
 ```
 myMaxCube.setTemperature('0dd6b5', 18).then(function (success) {
   if (success) {
