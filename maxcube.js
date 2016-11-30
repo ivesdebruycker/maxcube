@@ -13,6 +13,7 @@ function MaxCube(ip, port) {
 
   this.waitForCommandType = undefined;
   this.waitForCommandResolver = undefined;
+  this.initialised = false;
 
   this.commStatus = {
     duty_cycle: 0,
@@ -26,7 +27,13 @@ function MaxCube(ip, port) {
   });
 
   this.maxCubeLowLevel.on('connected', function () {
-    self.emit('connected');
+    if (!self.initialised) {
+      waitForCommand.call(self, 'M').then(function () {
+        self.emit('connected');
+      });
+    } else {
+      self.emit('connected');
+    }
   });
 
   this.maxCubeLowLevel.on('command', function (command) {
@@ -46,6 +53,7 @@ function MaxCube(ip, port) {
       case 'M': {
         self.roomCache = parsedCommand.rooms;
         self.deviceCache = parsedCommand.devices;
+        self.initialised = true;
         break;
       }
     }
