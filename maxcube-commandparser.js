@@ -271,7 +271,7 @@ function decodeDeviceThermostat (payload) {
 
     if (mode === 'VACATION') {
     // from http://sourceforge.net/p/fhem/code/HEAD/tree/trunk/fhem/FHEM/10_MAX.pm#l573
-      deviceStatus.date_until = 2000 + (payload[10] & 0x3F) + "-" + padLeft(((payload[9] & 0xE0) >> 4) | (payload[10] >> 7), 2) + "-" + padLeft(payload[9] & 0x1F, 2);
+      deviceStatus.date_until = 2000 + (payload[10] & 0x3F) + "-" + ("00" + (((payload[9] & 0xE0) >> 4) | (payload[10] >> 7))).substr(-2) + "-" + ("00" + (payload[9] & 0x1F)).substr(-2);
       var hours = (payload[11] & 0x3F) / 2;
       deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ((hours % 1) ? "30" : "00");
     } else {

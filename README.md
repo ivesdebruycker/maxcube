@@ -65,6 +65,7 @@ myMaxCube.getDeviceStatus().then(function (devices) {
 Set setpoint temperature for specified device and returns a promise.
 Possible modes are: 'AUTO', 'MANUAL', 'BOOST' and 'VACATION'
 If no mode is given, 'MANUAL' is presumed.
+Format untilDate as ISO 8601, e.g. 2019-06-20T10:00:00Z.
 ```
 myMaxCube.setTemperature('0dd6b5', 18).then(function (success) {
   if (success) {

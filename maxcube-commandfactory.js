@@ -1,3 +1,5 @@
+var moment = require('moment');
+
 function generateSetTemperatureCommand (rfAdress, room_id, mode, temperature, untilDate) {
   var date_until = '0000';
   var time_until = '00';
@@ -36,7 +38,7 @@ function generateSetTemperatureCommand (rfAdress, room_id, mode, temperature, un
   }
 
   if (modeBin == '00') {
-    var reqTempHex = (0).toString(16);
+    var reqTempHex = "00";
   } else {
     // leading zero padding
     var reqTempBinary = modeBin + ("000000" + ((temperature || 0) * 2).toString(2)).substr(-6);

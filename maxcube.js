@@ -23,6 +23,7 @@ function MaxCube(ip, port) {
   this.deviceCache = {};
 
   this.maxCubeLowLevel.on('closed', function () {
+    self.initialised = false;
     self.emit('closed');
   });
 
@@ -81,6 +82,12 @@ function send (command, replyCommandType) {
   });
 }
 
+function checkInitialised() {
+  if (!this.initialised) {
+    throw Error('Maxcube not initialised');
+  }
+}
+
 MaxCube.prototype.getConnection = function() {
   return this.maxCubeLowLevel.connect();
 }
@@ -90,6 +97,8 @@ MaxCube.prototype.getCommStatus = function() {
 }
 
 MaxCube.prototype.getDeviceStatus = function(rf_address) {
+  checkInitialised.call(this);
+
   return send.call(this, 'l:\r\n', 'L').then(function (devices) {
     if (rf_address) {
       return devices.filter(function(device) {
@@ -102,10 +111,14 @@ MaxCube.prototype.getDeviceStatus = function(rf_address) {
 };
 
 MaxCube.prototype.getDevices = function() {
+  checkInitialised.call(this);
+
   return this.deviceCache;
 };
 
 MaxCube.prototype.getDeviceInfo = function(rf_address) {
+  checkInitialised.call(this);
+
   var deviceInfo = {
     device_type: null,
     device_name: null,
@@ -129,14 +142,20 @@ MaxCube.prototype.getDeviceInfo = function(rf_address) {
 };
 
 MaxCube.prototype.getRooms = function() {
+  checkInitialised.call(this);
+
   return this.roomCache;
 };
 
 MaxCube.prototype.flushDeviceCache = function() {
+  checkInitialised.call(this);
+
   return send.call(this, 'm:\r\n');
 };
 
 MaxCube.prototype.setTemperature = function(rf_address, degrees, mode, untilDate) {
+  checkInitialised.call(this);
+
   var self = this;
   degrees = Math.max(2, degrees);
   var command = MaxCubeCommandFactory.generateSetTemperatureCommand (rf_address, this.deviceCache[rf_address].room_id, mode || 'MANUAL', degrees, untilDate);
