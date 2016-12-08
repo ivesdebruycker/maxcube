@@ -20,11 +20,11 @@ function generateSetTemperatureCommand (rfAdress, room_id, mode, temperature, un
     case 'VACATION': {
       modeBin = '10';
       var momentDate = moment(untilDate);
-      var year_until = ('0000000' + (momentDate.get('year') - 2000).toString(2)).substr(-7);
-      var month_until = ('0000' + (momentDate.get('month')).toString(2)).substr(-4);
-      var day_until = ('00000' + momentDate.get('date').toString(2)).substr(-5);
-      date_until = parseInt(('0000' + (month_until.substr(0,3) + day_until + month_until.substr(-1) + year_until)),2).toString(16).substr(-4);
-      time_until = ('00' + Math.round((momentDate.get('hour') + (momentDate.get('minute') / 60)) * 2).toString(16)).substr(-2);
+      var year_until = padLeft((momentDate.get('year') - 2000).toString(2), 7);
+      var month_until = padLeft((momentDate.get('month')).toString(2), 4);
+      var day_until = padLeft(momentDate.get('date').toString(2), 5);
+      date_until = padLeft(parseInt((month_until.substr(0,3) + day_until + month_until.substr(-1) + year_until), 2).toString(16), 4);
+      time_until = padLeft(Math.round((momentDate.get('hour') + (momentDate.get('minute') / 60)) * 2).toString(16), 2);
       break;
     }
     case 'BOOST': {
@@ -37,22 +37,22 @@ function generateSetTemperatureCommand (rfAdress, room_id, mode, temperature, un
     }
   }
 
-  if (modeBin == '00') {
-    var reqTempHex = "00";
-  } else {
-    // leading zero padding
-    var reqTempBinary = modeBin + ("000000" + ((temperature || 0) * 2).toString(2)).substr(-6);
-    // to hex string
-    var reqTempHex = parseInt(reqTempBinary, 2).toString(16);
-  }
+  // leading zero padding
+  var reqTempBinary = modeBin + padLeft(((temperature || 0) * 2).toString(2), 6);
+  // to hex string
+  var reqTempHex = padLeft(parseInt(reqTempBinary, 2).toString(16), 2);
 
   // '00' sets all temperature for all devices
-  var room_id_padded = ("00" + room_id).substr(-2);
+  var room_id_padded = padLeft(room_id, 2);
 
   var payload = new Buffer('000440000000' + rfAdress + room_id_padded + reqTempHex + date_until + time_until, 'hex').toString('base64');
   var data = 's:' + payload + '\r\n';
 
   return data;
+}
+
+function padLeft(data, totalLength){
+  return Array(totalLength - String(data).length + 1).join('0') + data;
 }
 
 module.exports = {
