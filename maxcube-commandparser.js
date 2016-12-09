@@ -200,7 +200,7 @@ function decodeDevice (payload) {
   switch (payload[0]) {
     case 8: deviceType = EQ3MAX_DEV_TYPE_PUSH_BUTTON; break;
     case 11: deviceType = EQ3MAX_DEV_TYPE_THERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
-    case 12: deviceType = EQ3MAX_DEV_TYPE_WALLTHERMOSTAT; break;
+    case 12: deviceType = EQ3MAX_DEV_TYPE_WALLTHERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
     default: deviceType = EQ3MAX_DEV_TYPE_UNKNOWN; break;
   }
 
