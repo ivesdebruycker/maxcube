@@ -17,10 +17,19 @@ util.inherits(MaxCubeLowLevel, EventEmitter);
 
 function initSocket () {
   var self = this;
+  var previousPacketData = '';
 
 	this.socket.on('data', function(dataBuff) {
     var dataStr = dataBuff.toString('utf-8');
-    
+
+    if (!dataStr.endsWith('\r\n')) {
+      previousPacketData = dataStr;
+      return;
+    }
+
+    dataStr = previousPacketData + dataStr;
+    previousPacketData = '';
+
     // multiple commands possible
     var commandArr = dataStr.split("\r\n");
     commandArr.forEach(function (command) {
