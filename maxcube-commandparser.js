@@ -7,6 +7,9 @@ var EQ3MAX_DEV_TYPE_SHUTTER_CONTACT = 4;
 var EQ3MAX_DEV_TYPE_PUSH_BUTTON = 5;
 var EQ3MAX_DEV_TYPE_UNKNOWN = 99;
 
+const StringDecoder = require('string_decoder').StringDecoder;
+const stringDecoder = new StringDecoder('utf8');
+
 function parse (commandType, payload) {
   switch (commandType) {
     case 'H':
@@ -31,6 +34,10 @@ function parse (commandType, payload) {
       console.error('Unknown command type: ' + commandType);
   }
 }
+
+var decodeStringPayload = function (charArray) {
+  return stringDecoder.write(Buffer.from(charArray));
+};
 
 function parseCommandHello (payload) {
   var payloadArr = payload.split(",");
@@ -66,7 +73,7 @@ function parseCommandMetadata (payload) {
   for (var i = 0; i < room_count; i++) {
     var room_id = decodedPayload[currentIndex];
     var room_name_length = decodedPayload[currentIndex + 1];
-    var room_name = String.fromCharCode.apply(null, decodedPayload.slice(currentIndex + 2, currentIndex + 2 + room_name_length));
+    var room_name = decodeStringPayload(decodedPayload.slice(currentIndex + 2, currentIndex + 2 + room_name_length));
     var group_rf_address = decodedPayload.slice(currentIndex + 2 + room_name_length, currentIndex + room_name_length + 5).toString('hex');
 
     var roomData = {
@@ -87,7 +94,7 @@ function parseCommandMetadata (payload) {
       var rf_address = decodedPayload.slice(currentIndex + 2, currentIndex + 5).toString('hex');
       var serialnumber = decodedPayload.slice(currentIndex + 5, currentIndex + 15).toString();
       var device_name_length = decodedPayload[currentIndex + 15];
-      var device_name = String.fromCharCode.apply(null, decodedPayload.slice(currentIndex + 16, currentIndex + 16 + device_name_length));
+      var device_name = decodeStringPayload(decodedPayload.slice(currentIndex + 16, currentIndex + 16 + device_name_length));
       var room_id = decodedPayload[currentIndex + 16 + device_name_length];
 
       var deviceData = {
