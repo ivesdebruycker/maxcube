@@ -62,6 +62,11 @@ function parseCommandHello (payload) {
 function parseCommandMetadata (payload) {
   var payloadArr = payload.split(",");
 
+  if (payloadArr.length < 3) {
+    console.error('Invalid Metadata received');
+    return { rooms: {}, devices: {} };
+  }
+
   var decodedPayload = new Buffer(payloadArr[2], 'base64');
   var room_count = decodedPayload[2];
   var currentIndex = 3;
