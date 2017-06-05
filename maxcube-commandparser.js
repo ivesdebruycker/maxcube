@@ -250,7 +250,6 @@ function decodeDeviceContact (payload) {
 }
 
 function decodeDeviceButton (payload) {
-  console.log(payload.join(', '));
     var deviceStatus = {
         rf_address: payload.slice(1, 4).toString('hex'),
         opened: (payload[5] & 0x2) && !(payload[5] & 0x1),
