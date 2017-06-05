@@ -210,15 +210,61 @@ function decodeDevice (payload) {
   var deviceStatus = {};
   var deviceType = undefined;
   switch (payload[0]) {
-    case 8: deviceType = EQ3MAX_DEV_TYPE_PUSH_BUTTON; break;
+    case 6:
+      if (payload[1] === 9) {
+          deviceType = EQ3MAX_DEV_TYPE_PUSH_BUTTON;
+          deviceStatus = decodeDeviceButton (payload);
+      } else {
+          deviceType = EQ3MAX_DEV_TYPE_SHUTTER_CONTACT;
+          deviceStatus = decodeDeviceContact (payload);
+      }
+
+      break;
+    case 8: deviceType = EQ3MAX_DEV_TYPE_PUSH_BUTTON; deviceStatus = decodeDeviceButton (payload); break;
     case 11: deviceType = EQ3MAX_DEV_TYPE_THERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
     case 12: deviceType = EQ3MAX_DEV_TYPE_WALLTHERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
+    case 13: deviceType = EQ3MAX_DEV_TYPE_THERMOSTAT_PLUS; deviceStatus = decodeDeviceThermostat (payload); break; // ??? if 13 is correct
     default: deviceType = EQ3MAX_DEV_TYPE_UNKNOWN; break;
   }
 
   deviceStatus.rf_address = payload.slice(1, 4).toString('hex');
 
   return deviceStatus;
+}
+
+function decodeDeviceContact (payload) {
+    var deviceStatus = {
+        rf_address: payload.slice(1, 4).toString('hex'),
+        opened: (payload[5] & 0x2) && !(payload[5] & 0x1),
+        initialized: !!(payload[5] & (1 << 1)),
+        fromCmd: !!(payload[5] & (1 << 2)),
+        error: !!(payload[5] & (1 << 3)),
+        valid: !!(payload[5] & (1 << 4)),
+        dst_active: !!(payload[6] & (1 << 3)),
+        gateway_known: !!(payload[6] & (1 << 4)),
+        link_error: !!(payload[6] & (1 << 6)),
+        battery_low: !!(payload[6] & (1 << 7)),
+        opened: !!(payload[6] & (1 << 1))
+    };
+    return deviceStatus;
+}
+
+function decodeDeviceButton (payload) {
+  console.log(payload.join(', '));
+    var deviceStatus = {
+        rf_address: payload.slice(1, 4).toString('hex'),
+        opened: (payload[5] & 0x2) && !(payload[5] & 0x1),
+        initialized: !!(payload[5] & (1 << 1)),
+        fromCmd: !!(payload[5] & (1 << 2)),
+        error: !!(payload[5] & (1 << 3)),
+        valid: !!(payload[5] & (1 << 4)),
+        dst_active: !!(payload[6] & (1 << 3)),
+        gateway_known: !!(payload[6] & (1 << 4)),
+        link_error: !!(payload[6] & (1 << 6)),
+        battery_low: !!(payload[6] & (1 << 7)),
+        eco_mode: !!(payload[6] & (1 << 1))
+    };
+    return deviceStatus;
 }
 
 function decodeDeviceThermostat (payload) {
