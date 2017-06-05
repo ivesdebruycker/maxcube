@@ -49,6 +49,7 @@ function MaxCube(ip, port) {
       case 'H': {
         self.commStatus.duty_cycle = parsedCommand.duty_cycle;
         self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
+        self.emit('hello', parsedCommand);
         break;
       }
       case 'M': {
