@@ -282,7 +282,15 @@ function decodeDeviceThermostat (payload) {
       var hours = (payload[11] & 0x3F) / 2;
       deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ((hours % 1) ? "30" : "00");
     } else {
-      deviceStatus.temp = (payload[9]?25.5:0) + payload[10] / 10;
+      //wall thermostat fix
+      if (payload.length == 13)
+      {
+        deviceStatus.temp = (payload[11]?25.5:0) + payload[12] / 10;
+      }
+      else
+      {
+        deviceStatus.temp = (payload[9]?25.5:0) + payload[10] / 10;
+      }
     }
 
     return deviceStatus;
