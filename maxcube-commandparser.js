@@ -5,7 +5,10 @@ var EQ3MAX_DEV_TYPE_THERMOSTAT_PLUS = 2;
 var EQ3MAX_DEV_TYPE_WALLTHERMOSTAT = 3;
 var EQ3MAX_DEV_TYPE_SHUTTER_CONTACT = 4;
 var EQ3MAX_DEV_TYPE_PUSH_BUTTON = 5;
+var EQ3MAX_DEV_TYPE_WINDOW_SWITCH = 6;
 var EQ3MAX_DEV_TYPE_UNKNOWN = 99;
+//temporary global var for device type
+var EQ3MAX_DEV_TYPE_TEMP = "foo";
 
 const StringDecoder = require('string_decoder').StringDecoder;
 const stringDecoder = new StringDecoder('utf8');
@@ -205,9 +208,10 @@ function decodeDevice (payload) {
   var deviceStatus = {};
   var deviceType = undefined;
   switch (payload[0]) {
+    case 6: deviceType = EQ3MAX_DEV_TYPE_WINDOW_SWITCH; deviceStatus = decodeDeviceWindowSwitch (payload); break;
     case 8: deviceType = EQ3MAX_DEV_TYPE_PUSH_BUTTON; break;
     case 11: deviceType = EQ3MAX_DEV_TYPE_THERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
-    case 12: deviceType = EQ3MAX_DEV_TYPE_WALLTHERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
+    case 12: deviceType = EQ3MAX_DEV_TYPE_WALLTHERMOSTAT; EQ3MAX_DEV_TYPE_TEMP=deviceType; deviceStatus = decodeDeviceThermostat (payload); break;
     default: deviceType = EQ3MAX_DEV_TYPE_UNKNOWN; break;
   }
 
@@ -215,6 +219,27 @@ function decodeDevice (payload) {
 
   return deviceStatus;
 }
+
+function decodeDeviceWindowSwitch (payload) {
+   /*
+     According to https://github.com/Bouni/max-cube-protocol/blob/master/L-Message.md the information about
+     the window status is mapped in the lowest two bits in the flag word.
+   */
+   var open = false;
+
+  if (payload[6] & (1 << 1)) {
+    open = true;
+  }
+
+   var deviceStatus = {
+     rf_address: payload.slice(1, 4).toString('hex'),
+     open: open,
+     battery_low: !!(payload[6] & (1 << 7)),
+   };
+
+   return deviceStatus;
+ }
+
 
 function decodeDeviceThermostat (payload) {
   /*
@@ -275,17 +300,23 @@ function decodeDeviceThermostat (payload) {
       valve: payload[7],
       setpoint: (payload[8] / 2)
     };
-
     if (mode === 'VACATION') {
     // from http://sourceforge.net/p/fhem/code/HEAD/tree/trunk/fhem/FHEM/10_MAX.pm#l573
       deviceStatus.date_until = 2000 + (payload[10] & 0x3F) + "-" + ("00" + (((payload[9] & 0xE0) >> 4) | (payload[10] >> 7))).substr(-2) + "-" + ("00" + (payload[9] & 0x1F)).substr(-2);
       var hours = (payload[11] & 0x3F) / 2;
       deviceStatus.time_until = ('00' + Math.floor(hours)).substr(-2) + ':' + ((hours % 1) ? "30" : "00");
     } else {
-      deviceStatus.temp = (payload[9]?25.5:0) + payload[10] / 10;
+      if (EQ3MAX_DEV_TYPE_TEMP == 3)
+      {
+      		deviceStatus.temp = (payload[11]?25.5:0) + payload[12] / 10;
+      }
+      else
+      {
+      		deviceStatus.temp = (payload[9]?25.5:0) + payload[10] / 10;
+      }
     }
+    EQ3MAX_DEV_TYPE_TEMP = "foo";
 
     return deviceStatus;
 }
-
 exports.parse = parse;
