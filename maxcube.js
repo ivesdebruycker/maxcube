@@ -166,6 +166,21 @@ MaxCube.prototype.setTemperature = function(rf_address, degrees, mode, untilDate
   });
 };
 
+MaxCube.prototype.setSchedule = function(rf_address, room_id, weekday, temperaturesArray, timesArray) {
+  checkInitialised.call(this);
+
+  var self = this;
+
+  // TODO: Create proper temperatures andt times for schedule
+  
+  var command = MaxCubeCommandFactory.generateSetDayProgramCommand (rf_address, room_id, weekday, temperaturesArray, timesArray);
+  return send.call(this, command, 'S').then(function (res) {
+    self.commStatus.duty_cycle = res.duty_cycle;
+    self.commStatus.free_memory_slots = res.free_memory_slots;
+    return res.accepted;
+  });
+};
+
 MaxCube.prototype.close = function() {
   this.maxCubeLowLevel.close();
 };
