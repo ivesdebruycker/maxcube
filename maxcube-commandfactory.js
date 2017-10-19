@@ -124,6 +124,7 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
       var hex  = parseInt(bin, 2).toString(16);
 
       hexTempTimeArr.push(hex);
+    }
   }
   // to hex string
   var reqTempTimeHex = hexTempTimeArr.join('');
