@@ -105,6 +105,10 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
   // tempertures: [19.5,21,..] degrees Celsius (max 7)
   // times:       ['HH:mm',..] 24h format (max 7, same amount as temperatures)
   
+  console.log('generateSetDayProgramCommand for room_id: '+room_id+' weekday: '+weekday);
+  console.log(temperaturesArray);
+  console.log(timesArray);
+
   var dayArr = ['010','011','100','101','110','000','001'];
   var dayBin = dayArr[weekday];
   var reqDayBin = padLeft(dayBin, 8);
@@ -131,8 +135,14 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
     
   // '00' sets all temperature for all devices
   var room_id_padded = padLeft(room_id, 2);
+  var req_day_padded = padLeft(reqDayHex, 2);
+  var rf             = rfAdress.toUpperCase();
+  var hexString      = '000410000000' + rf + room_id_padded + reqDayHex + reqTempTimeHex;
 
-  var payload = new Buffer('000410000000' + rfAdress + room_id_padded + reqDayHex + reqTempTimeHex, 'hex').toString('base64');
+  console.log('000410000000' +' '+ rf +' '+ room_id_padded +' '+ req_day_padded +' '+ reqTempTimeHex);
+  //console.log(hexString);
+  var payload = new Buffer(hexString).toString('base64');
+  //console.log(payload);
   var data = 's:' + payload + '\r\n';
 
   return data;
