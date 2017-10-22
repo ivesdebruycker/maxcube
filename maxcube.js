@@ -167,11 +167,13 @@ MaxCube.prototype.setTemperature = function(rf_address, degrees, mode, untilDate
 };
 
 MaxCube.prototype.setSchedule = function(rf_address, room_id, weekday, temperaturesArray, timesArray) {
+  // weekday:           0=mo,1=tu,..,6=su
+  // temperaturesArray: [19.5,21,..] degrees Celsius (max 7)
+  // timesArray:        ['HH:mm',..] 24h format (max 7, same amount as temperatures)
+
   checkInitialised.call(this);
 
   var self = this;
-
-  // TODO: Create proper temperatures andt times for schedule
   
   var command = MaxCubeCommandFactory.generateSetDayProgramCommand (rf_address, room_id, weekday, temperaturesArray, timesArray);
   return send.call(this, command, 'S').then(function (res) {
