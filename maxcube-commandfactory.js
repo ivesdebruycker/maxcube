@@ -107,11 +107,7 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
   // tempertures: [19.5,21,..] degrees Celsius (max 7)
   // times:       ['HH:mm',..] 24h format (max 7, same amount as temperatures)
   
-  console.log('generateSetDayProgramCommand for room_id: '+room_id+' weekday: '+weekday);
-  // console.log(temperaturesArray);
-  // console.log(timesArray);
-
-  var dayArr = ['010','011','100','101','110','000','001'];
+  var dayArr = ['010','011','100','101','110','000','001']; // mo - su
   var dayBin = dayArr[weekday];
   var reqDayBin = padLeft(dayBin, 8);
   var reqDayHex = parseInt(reqDayBin, 2).toString(16);
@@ -134,19 +130,12 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
   }
   // to hex string
   var reqTempTimeHex = hexTempTimeArr.join('');
-    
-  // '00' sets all temperature for all devices
   var room_id_padded = padLeft(room_id, 2);
   var req_day_padded = padLeft(reqDayHex, 2);
-  var rf             = rfAdress; //.toUpperCase();
+  var rf             = rfAdress;
   var hexString      = '000410000000' + rf + room_id_padded + req_day_padded + reqTempTimeHex;
-  hexString          = hexString.toLowerCase();
-
-  console.log('000410000000' +' '+ rf +' '+ room_id_padded +' '+ req_day_padded +' '+ reqTempTimeHex);
-  //console.log(hexString);
-  var payload = new Buffer(hexString, 'hex').toString('base64');
-  //console.log(payload);
-  var data = 's:' + payload + '\r\n';
+  var payload        = new Buffer(hexString, 'hex').toString('base64');
+  var data           = 's:' + payload + '\r\n';
 
   return data;
 }
