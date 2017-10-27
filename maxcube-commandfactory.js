@@ -132,8 +132,7 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
   var reqTempTimeHex = hexTempTimeArr.join('');
   var room_id_padded = padLeft(room_id, 2);
   var req_day_padded = padLeft(reqDayHex, 2);
-  var rf             = rfAdress;
-  var hexString      = '000410000000' + rf + room_id_padded + req_day_padded + reqTempTimeHex;
+  var hexString      = '000410000000' + rfAdress + room_id_padded + req_day_padded + reqTempTimeHex;
   var payload        = new Buffer(hexString, 'hex').toString('base64');
   var data           = 's:' + payload + '\r\n';
 
