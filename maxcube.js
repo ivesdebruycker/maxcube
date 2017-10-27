@@ -57,8 +57,31 @@ function MaxCube(ip, port) {
         self.initialised = true;
         break;
       }
+      case 'L': {
+        self.updateDeviceInfo(parsedCommand);
+      }
     }
   });
+
+  this.updateDeviceInfo = function(devices)
+  {
+    if (typeof devices != 'undefined')
+    {
+      for(var i=0; i < devices.length ; i++)
+      {
+        var deviceInfo = devices[i];
+        var rf = deviceInfo.rf_address;
+        if (typeof self.deviceCache[rf] != 'undefined')
+        {
+          for(var item in deviceInfo)
+          {
+            var val = deviceInfo[item];
+            self.deviceCache[rf][item] = val;
+          }
+        }
+      }
+    }
+  }
 }
 
 util.inherits(MaxCube, EventEmitter);
@@ -124,12 +147,16 @@ MaxCube.prototype.getDeviceInfo = function(rf_address) {
     device_name: null,
     room_name: null,
     room_id: null,
+    battery_low: null,
+    panel_locked: null
   };
 
   var device = this.deviceCache[rf_address];
   if (device) {
     deviceInfo.device_type = device.device_type;
     deviceInfo.device_name = device.device_name;
+    deviceInfo.battery_low = device.battery_low;
+    deviceInfo.panel_locked= device.panel_locked;
 
     if (device.room_id && this.roomCache[device.room_id]) {
       var room = this.roomCache[device.room_id];
@@ -170,6 +197,7 @@ MaxCube.prototype.setSchedule = function(rf_address, room_id, weekday, temperatu
   // weekday:           0=mo,1=tu,..,6=su
   // temperaturesArray: [19.5,21,..] degrees Celsius (max 7)
   // timesArray:        ['HH:mm',..] 24h format (max 7, same amount as temperatures)
+  // the first time will be the time (from 00:00 to timesArray[0]) that the first temperature is active. Last possibe time of the day: 00:00 
 
   checkInitialised.call(this);
 
