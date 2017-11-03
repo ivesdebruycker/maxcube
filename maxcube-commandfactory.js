@@ -115,22 +115,29 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
   var hexTempTimeArr = [];
   for (var i = 0; i < temperaturesArray.length; i++) 
   {
-    if (i < 6 || i == temperaturesArray.length-1) // take 6 first and last
+    if (i < 6 || i == temperaturesArray.length-1) // max: 7, take 6 first and last
     {
       var temp = temperaturesArray[i];
-      var time = timesArray[i].split(':');
-      var mins = ( parseInt(time[0]) * 60 + parseInt(time[1]) );
-      var temB = padLeft(((temp || 0) * 2).toString(2), 7);
-      var timB = padLeft(Math.round(mins / 5).toString(2), 9);
-      var bin  = temB + timB;
-      var hex  = parseInt(bin, 2).toString(16);
+      if (i < temperaturesArray.length-1 && temp == temperaturesArray[i+1])
+      {
+        // temperature is the same as in the next time, so only set change @ the next time
+      }
+      else
+      {
+        var time = timesArray[i].split(':');
+        var mins = ( parseInt(time[0]) * 60 + parseInt(time[1]) );
+        var temB = padLeft(((temp || 0) * 2).toString(2), 7);
+        var timB = padLeft(Math.round(mins / 5).toString(2), 9);
+        var bin  = temB + timB;
+        var hex  = parseInt(bin, 2).toString(16);
 
-      hexTempTimeArr.push(hex);
+        hexTempTimeArr.push(hex);
+      }
     }
   }
   // to hex string
   var reqTempTimeHex = hexTempTimeArr.join('');
-  var room_id_padded = padLeft(room_id, 2);
+  var room_id_padded = padLeft(room_id.toString(16), 2);
   var req_day_padded = padLeft(reqDayHex, 2);
   var hexString      = '000410000000' + rfAdress + room_id_padded + req_day_padded + reqTempTimeHex;
   var payload        = new Buffer(hexString, 'hex').toString('base64');
