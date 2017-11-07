@@ -19,6 +19,10 @@ function MaxCube(ip, port) {
     duty_cycle: 0,
     free_memory_slots: 0,
   }
+  this.metaInfo = {
+    serial: null,
+    firmware_version: null,
+  }
   this.roomCache = [];
   this.deviceCache = {};
 
@@ -47,8 +51,10 @@ function MaxCube(ip, port) {
 
     switch (command.type) {
       case 'H': {
-        self.commStatus.duty_cycle = parsedCommand.duty_cycle;
+        self.commStatus.duty_cycle        = parsedCommand.duty_cycle;
         self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
+        self.metaInfo.serial              = parsedCommand.serial;
+        self.metaInfo.firmware_version    = parsedCommand.firmware_version;
         break;
       }
       case 'M': {
