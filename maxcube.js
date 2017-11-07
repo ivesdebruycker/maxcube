@@ -53,7 +53,7 @@ function MaxCube(ip, port) {
       case 'H': {
         self.commStatus.duty_cycle        = parsedCommand.duty_cycle;
         self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
-        self.metaInfo.serial              = parsedCommand.serial;
+        self.metaInfo.serial_number       = parsedCommand.serial_number;
         self.metaInfo.firmware_version    = parsedCommand.firmware_version;
         break;
       }
