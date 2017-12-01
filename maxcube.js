@@ -186,6 +186,16 @@ MaxCube.prototype.flushDeviceCache = function() {
   return send.call(this, 'm:\r\n');
 };
 
+MaxCube.prototype.sayHello = function() {
+  checkInitialised.call(this);
+
+  return send.call(this, 'H:\r\n').then(function (res) {
+    self.commStatus.duty_cycle = res.duty_cycle;
+    self.commStatus.free_memory_slots = res.free_memory_slots;
+    return res.accepted;
+  });
+};
+
 MaxCube.prototype.setTemperature = function(rf_address, degrees, mode, untilDate) {
   checkInitialised.call(this);
 
