@@ -8,7 +8,7 @@ It includes support for window sensors, wall thermostats and schedules in additi
 
 ## Example
 ```
-var MaxCube = require('maxcube');
+var MaxCube = require('maxcube2');
 var myMaxCube = new MaxCube('192.168.1.123', 62910);
 
 myMaxCube.on('connected', function () {
@@ -76,3 +76,11 @@ myMaxCube.setTemperature('0dd6b5', 18).then(function (success) {
   }
 });
 ```
+
+### setSchedule(rf_address, room_id, weekday, temperaturesArray, timesArray)
+Set a schedule for a device.
+
+- weekday:           0=mo,1=tu,..,6=su
+- temperaturesArray: [19.5,21,..] degrees Celsius (max 7)
+- timesArray:        ['HH:mm',..] 24h format (max 7, same amount as temperatures)
+- the first time will be the time (from 00:00 to timesArray[0]) that the first temperature is active. Last possibe time of the day: 00:00
