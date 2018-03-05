@@ -1,7 +1,7 @@
 {
   "name": "maxcube",
-  "version": "1.0.6",
-  "description": "eQ-3 Max! Cube interface",
+  "version": "2.0.0",
+  "description": "eq-3 Max! Cube interface",
   "main": "maxcube.js",
   "dependencies": {
     "bluebird": "^3.3.4",
@@ -9,11 +9,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ivesdebruycker/maxcube.git"
+    "url": "https://github.com/normen/maxcube2.git"
   },
   "author": "Ives De Bruycker",
+  "contributors": [
+    "Normen Hansen",
+    "pvgennip",
+    "maxill1",
+    "Daniel Weeber"
+  ],
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ivesdebruycker/maxcube/issues"
+    "url": "https://github.com/normen/maxcube2/issues"
   }
 }
