@@ -10,6 +10,10 @@ function MaxCubeLowLevel(ip, port){
   this.socket = new net.Socket();
   this.isConnected = false;
 
+  process.on('uncaughtException', (err) => {
+    //console.error('Uncaught exception error');
+  });
+
 	initSocket.call(this);
 }
 
