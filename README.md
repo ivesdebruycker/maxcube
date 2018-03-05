@@ -1,11 +1,10 @@
-maxcube
-=======
+# MaxCube2 [![NPM Version](https://img.shields.io/npm/v/maxcube2.svg)](https://www.npmjs.com/package/maxcube2)
 
 eQ-3 Max! Cube interface library for Node.js v2
 
 This is a continuation of the work first started by https://github.com/ivesdebruycker/maxcube
 
-It includes support for window sensors, wall thermostats and schedules in addition to the basic features of the previous version of this library.
+It includes support for window sensors, wall thermostats and schedules in addition to the basic features of the previous version of this library. The API didn't change so it's a drop-in replacement.
 
 ## Example
 ```
