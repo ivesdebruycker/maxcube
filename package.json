@@ -18,6 +18,16 @@
     "Daniel Weeber",
     "Normen Hansen"
   ],
+  "keywords": [
+    "eq-3",
+    "eq3",
+    "maxcube",
+    "thermostat",
+    "home",
+    "heating",
+    "max",
+    "elv"
+  ],
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/normen/maxcube2/issues"
