@@ -1,5 +1,5 @@
 {
-  "name": "maxcube",
+  "name": "maxcube2",
   "version": "2.0.0",
   "description": "eq-3 Max! Cube interface",
   "main": "maxcube.js",
@@ -13,10 +13,10 @@
   },
   "author": "Ives De Bruycker",
   "contributors": [
-    "Normen Hansen",
     "pvgennip",
     "maxill1",
-    "Daniel Weeber"
+    "Daniel Weeber",
+    "Normen Hansen"
   ],
   "license": "ISC",
   "bugs": {
