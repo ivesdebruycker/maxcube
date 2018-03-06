@@ -45,7 +45,6 @@ function generateSetTemperatureCommand (rfAdress, room_id, mode, temperature, un
   // '00' sets all temperature for all devices
   var room_id_padded = padLeft(room_id, 2);
   var hexString = '000440000000' + rfAdress + room_id_padded + reqTempHex + date_until + time_until;
-  console.log(hexString);
 
   var payload = new Buffer(hexString, 'hex').toString('base64');
   var data = 's:' + payload + '\r\n';
