@@ -5,6 +5,7 @@ var EQ3MAX_DEV_TYPE_THERMOSTAT_PLUS = 2;
 var EQ3MAX_DEV_TYPE_WALLTHERMOSTAT = 3;
 var EQ3MAX_DEV_TYPE_SHUTTER_CONTACT = 4;
 var EQ3MAX_DEV_TYPE_PUSH_BUTTON = 5;
+var EQ3MAX_DEV_TYPE_WINDOW_SWITCH = 6;
 var EQ3MAX_DEV_TYPE_UNKNOWN = 99;
 
 const StringDecoder = require('string_decoder').StringDecoder;
@@ -205,6 +206,7 @@ function decodeDevice (payload) {
   var deviceStatus = {};
   var deviceType = undefined;
   switch (payload[0]) {
+    case 6: deviceType = EQ3MAX_DEV_TYPE_WINDOW_SWITCH; deviceStatus = decodeDeviceWindowSwitch (payload); break;
     case 8: deviceType = EQ3MAX_DEV_TYPE_PUSH_BUTTON; break;
     case 11: deviceType = EQ3MAX_DEV_TYPE_THERMOSTAT; deviceStatus = decodeDeviceThermostat (payload); break;
     case 12: deviceType = EQ3MAX_DEV_TYPE_WALLTHERMOSTAT; deviceStatus = decodeDeviceWallThermostat (payload); break;
@@ -213,6 +215,24 @@ function decodeDevice (payload) {
 
   deviceStatus.rf_address = payload.slice(1, 4).toString('hex');
 
+  return deviceStatus;
+}
+
+function decodeDeviceWindowSwitch (payload) {
+  /*
+    According to https://github.com/Bouni/max-cube-protocol/blob/master/L-Message.md the information about
+    the window status is mapped in the lowest two bits in the flag word.
+  */
+  var open = false;
+
+  if ((payload[6] & (1 << 1)) > 0) {
+    open = true;
+  }
+
+  var deviceStatus = {
+    rf_address: payload.slice(1, 4).toString('hex'),
+    open: open,
+  };
   return deviceStatus;
 }
 

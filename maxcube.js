@@ -19,6 +19,10 @@ function MaxCube(ip, port) {
     duty_cycle: 0,
     free_memory_slots: 0,
   }
+  this.metaInfo = {
+    serial: null,
+    firmware_version: null,
+  }
   this.roomCache = [];
   this.deviceCache = {};
 
@@ -47,8 +51,10 @@ function MaxCube(ip, port) {
 
     switch (command.type) {
       case 'H': {
-        self.commStatus.duty_cycle = parsedCommand.duty_cycle;
+        self.commStatus.duty_cycle        = parsedCommand.duty_cycle;
         self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
+        self.metaInfo.serial_number       = parsedCommand.serial_number;
+        self.metaInfo.firmware_version    = parsedCommand.firmware_version;
         break;
       }
       case 'M': {
@@ -57,8 +63,32 @@ function MaxCube(ip, port) {
         self.initialised = true;
         break;
       }
+      case 'L': {
+        self.updateDeviceInfo(parsedCommand);
+
+      }
     }
   });
+
+  this.updateDeviceInfo = function(devices)
+  {
+    if (typeof devices != 'undefined')
+    {
+      for(var i=0; i < devices.length ; i++)
+      {
+        var deviceInfo = devices[i];
+        var rf = deviceInfo.rf_address;
+        if (typeof self.deviceCache[rf] != 'undefined')
+        {
+          for(var item in deviceInfo)
+          {
+            var val = deviceInfo[item];
+            self.deviceCache[rf][item] = val;
+          }
+        }
+      }
+    }
+  }
 }
 
 util.inherits(MaxCube, EventEmitter);
@@ -124,12 +154,16 @@ MaxCube.prototype.getDeviceInfo = function(rf_address) {
     device_name: null,
     room_name: null,
     room_id: null,
+    battery_low: null,
+    panel_locked: null
   };
 
   var device = this.deviceCache[rf_address];
   if (device) {
     deviceInfo.device_type = device.device_type;
     deviceInfo.device_name = device.device_name;
+    deviceInfo.battery_low = device.battery_low;
+    deviceInfo.panel_locked= device.panel_locked;
 
     if (device.room_id && this.roomCache[device.room_id]) {
       var room = this.roomCache[device.room_id];
@@ -153,12 +187,40 @@ MaxCube.prototype.flushDeviceCache = function() {
   return send.call(this, 'm:\r\n');
 };
 
+MaxCube.prototype.sayHello = function() {
+  checkInitialised.call(this);
+
+  return send.call(this, 'h:\r\n', 'H').then(function (res) {
+    self.commStatus.duty_cycle = res.duty_cycle;
+    self.commStatus.free_memory_slots = res.free_memory_slots;
+    return true;
+  });
+};
+
 MaxCube.prototype.setTemperature = function(rf_address, degrees, mode, untilDate) {
   checkInitialised.call(this);
 
   var self = this;
   degrees = Math.max(2, degrees);
   var command = MaxCubeCommandFactory.generateSetTemperatureCommand (rf_address, this.deviceCache[rf_address].room_id, mode || 'MANUAL', degrees, untilDate);
+  return send.call(this, command, 'S').then(function (res) {
+    self.commStatus.duty_cycle = res.duty_cycle;
+    self.commStatus.free_memory_slots = res.free_memory_slots;
+    return res.accepted;
+  });
+};
+
+MaxCube.prototype.setSchedule = function(rf_address, room_id, weekday, temperaturesArray, timesArray) {
+  // weekday:           0=mo,1=tu,..,6=su
+  // temperaturesArray: [19.5,21,..] degrees Celsius (max 7)
+  // timesArray:        ['HH:mm',..] 24h format (max 7, same amount as temperatures)
+  // the first time will be the time (from 00:00 to timesArray[0]) that the first temperature is active. Last possibe time of the day: 00:00 
+
+  checkInitialised.call(this);
+
+  var self = this;
+  
+  var command = MaxCubeCommandFactory.generateSetDayProgramCommand (rf_address, room_id, weekday, temperaturesArray, timesArray);
   return send.call(this, command, 'S').then(function (res) {
     self.commStatus.duty_cycle = res.duty_cycle;
     self.commStatus.free_memory_slots = res.free_memory_slots;
