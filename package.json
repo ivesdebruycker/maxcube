@@ -1,6 +1,6 @@
 {
   "name": "maxcube2",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "eq-3 Max! Cube interface v2",
   "main": "maxcube.js",
   "dependencies": {
