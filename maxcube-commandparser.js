@@ -203,6 +203,7 @@ function parseCommandAcknowledge () {
 }
 
 function decodeDevice (payload) {
+  console.log('decodeDevice ' + payload[0]);
   var deviceStatus = {};
   var deviceType = undefined;
   switch (payload[0]) {
@@ -219,6 +220,8 @@ function decodeDevice (payload) {
 }
 
 function decodeDeviceWindowSwitch (payload) {
+  console.log('decodeDeviceWindowSwitch');
+  console.log(payload);
   /*
     According to https://github.com/Bouni/max-cube-protocol/blob/master/L-Message.md the information about
     the window status is mapped in the lowest two bits in the flag word.
@@ -309,7 +312,8 @@ function decodeDeviceThermostat (payload) {
 }
 
 function decodeDeviceWallThermostat (payload) {
-
+  console.log('decodeDeviceWallThermostat');
+  console.log(payload);
   //regular device parsing
   var deviceStatus = decodeDeviceThermostat (payload);
 
