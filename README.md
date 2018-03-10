@@ -1,10 +1,18 @@
 # MaxCube2 [![NPM Version](https://img.shields.io/npm/v/maxcube2.svg)](https://www.npmjs.com/package/maxcube2)
 
-eQ-3 Max! Cube interface library for Node.js v2
+eQ-3 Max! Cube interface library for homebridge-platform-maxcube
 
-This is a continuation of the work first started by https://github.com/ivesdebruycker/maxcube
+This is a fork of the work first started by https://github.com/ivesdebruycker/maxcube
 
-It includes support for window sensors, wall thermostats and schedules in addition to the basic features of the previous version of this library. The API didn't change so it's a drop-in replacement.
+## Introduction
+### History
+Why this library is called maxcube_2_? Because the maxcube project seemed to be dead without response to issues or PRs for over half a year and I needed it fixed for my homebridge plugin. So I finally decided to continue its legacy as "maxcube2" but then it suddenly got revived. Now I won't change the name of this library anymore and keep this fork for the homebridge-platform-maxcube project - still as a proper merge-able fork of maxcube however.
+
+### Changes from maxcube
+- More events (error, device_list etc.)
+- Getting device configurations (min/max/eco/comfort temperatures etc.)
+
+The old API didn't change currently so it's a drop-in replacement.
 
 ## Example
 ```
@@ -28,6 +36,11 @@ myMaxCube.on('closed', function () {
 ## Events
 * connected
 * closed
+* error
+* hello (arg = hello object)
+* meta_data (arg = meta data object)
+* device_list (arg = list of devices)
+* configuration (arg = configuration object for a single device)
 
 ## API
 ### getConnection()

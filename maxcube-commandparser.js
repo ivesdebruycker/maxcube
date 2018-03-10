@@ -93,7 +93,7 @@ function parseCommandMetadata (payload) {
     for (var i = 0; i < device_count; i++) {
       var device_type = decodedPayload[currentIndex + 1];
       var rf_address = decodedPayload.slice(currentIndex + 2, currentIndex + 5).toString('hex');
-      var serial_number = decodedPayload.slice(currentIndex + 5, currentIndex + 15).toString();
+      var serialnumber = decodedPayload.slice(currentIndex + 5, currentIndex + 15).toString();
       var device_name_length = decodedPayload[currentIndex + 15];
       var device_name = decodeStringPayload(decodedPayload.slice(currentIndex + 16, currentIndex + 16 + device_name_length));
       var room_id = decodedPayload[currentIndex + 16 + device_name_length];
@@ -101,7 +101,7 @@ function parseCommandMetadata (payload) {
       var deviceData = {
         device_type: device_type,
         rf_address: rf_address,
-        serial_number: serial_number,
+        serialnumber: serialnumber,
         device_name: device_name,
         room_id: room_id,
       };
@@ -309,11 +309,9 @@ function decodeDeviceThermostat (payload) {
 }
 
 function decodeDeviceWallThermostat (payload) {
-  //regular device parsing
+  //regular device parsing, only temp is in a different location
   var deviceStatus = decodeDeviceThermostat (payload);
-
-	deviceStatus.temp = (payload[11]?25.5:0) + payload[12] / 10;
-
+  deviceStatus.temp = (payload[11]?25.5:0) + payload[12] / 10;
   return deviceStatus;
 }
 
