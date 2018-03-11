@@ -235,6 +235,12 @@ MaxCube.prototype.flushDeviceCache = function() {
   return send.call(this, 'm:\r\n');
 };
 
+MaxCube.prototype.resetError = function() {
+  checkInitialised.call(this);
+
+  return send.call(this, 'r:\r\n', 'S');
+};
+
 MaxCube.prototype.sayHello = function() {
   checkInitialised.call(this);
 
