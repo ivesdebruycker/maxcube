@@ -1,6 +1,6 @@
 {
   "name": "maxcube2",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "eq-3 Max! Cube interface for homebridge-platform-maxcube",
   "main": "maxcube.js",
   "dependencies": {

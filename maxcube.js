@@ -235,10 +235,10 @@ MaxCube.prototype.flushDeviceCache = function() {
   return send.call(this, 'm:\r\n');
 };
 
-MaxCube.prototype.resetError = function() {
+MaxCube.prototype.resetError = function(rf_address) {
   checkInitialised.call(this);
 
-  return send.call(this, 'r:\r\n', 'S');
+  return send.call(this, MaxCubeCommandFactory.generateResetCommand(rf_address, this.deviceCache[rf_address].room_id), 'S');
 };
 
 MaxCube.prototype.sayHello = function() {
