@@ -329,22 +329,10 @@ function decodeDeviceWallThermostat (payload) {
           | ++-++++--------------------- temperature (°C*2):            110010 = 25.0°C
           |                 |||| ||||
           +-----------------++++-++++--- actual temperature (°C*10): 100100100 = 29.2°C
-
   */
-
-  //offset 8 binary to extract only needed bit
-  var off8Bin= (payload[8] >>> 0).toString(2);
-
-  //offset8 without top bit (it is used by actual temperature and will corrupt the setpoint value)
-  var setPoint = parseInt(((off8Bin + '').substring(1)).replace(/[^01]/gi, ''), 2);
-  //C/2
-  deviceStatus.setpoint = setPoint / 2;
-
-  //get the TopBit and zero fill right to use it as 9 bit of offset 12
-  var off8TopBit =  parseInt(off8Bin.substring(0,1)) << 8;
-  //Bitwise OR offset 8/offset 12 and finally C/10 to read the actual temperature
-  deviceStatus.temp = (parseInt(off8TopBit) | parseInt(payload[12])) / 10;
-
+  //removing first and second bit from offset 8 00111111 & 10110010 = 00110010
+  deviceStatus.setpoint = (63 & payload[8]) / 2;
+  deviceStatus.temp = (payload[8]>=128 ? 25.5 : 0) + payload[12] / 10;
   return deviceStatus;
 }
 
