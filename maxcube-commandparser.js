@@ -144,8 +144,47 @@ function parseCommandConfiguration (payload) {
                             The five least significant bits (LSB) are presenting the time (in hours)
   27         1  FF          Maximum Valve setting; *(100/255) to get in %
   1C         1  00          Valve Offset ; *(100/255) to get in %
-  1D         ?  44 48 ...   Weekly program (see The weekly program)
-  */
+  1d        182 Weekly Program        Schedule of 26 bytes for
+                                      each day starting with
+                                      Saturday. Each schedule
+                                      consists of 13 words
+                                      (2 bytes) e.g. set points.
+                                      1 set point consist of
+                                      7 MSB bits is temperature
+                                        set point (in degrees * 2)
+                                      9 LSB bits is until time
+                                        (in minutes * 5)
+
+
+*/
+  var weekly_program_days = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday' ];
+  var parseDayProgram = function(dayPayload){
+    var temperaturesArray = [];
+    var timesArray = [];
+    var debug = [];
+    for (var i = 1; i <= 13; i++) {
+      var length = 2;
+      var offset =  i*2;
+      //  Weekly program  41 20  0100000 100100000 -> 16 degrees, until 24:00
+      var msb = dayPayload[offset]>>1;
+      var lsb = (dayPayload[offset]&1)<<8;
+
+      var setpoint = msb/2;
+      var minutes = (lsb+dayPayload[offset+1])*5;
+      var time = Math.floor(minutes / 60)+':'+(minutes%60==0?'00':(minutes%60<10?'0'+minutes%60:minutes%60));
+
+      //if a day has less than 13 setpoints, last one repeats until we reach 13
+      if(setpoint > 0 && time !==undefined && setpoint !== temperaturesArray[temperaturesArray.length-1]  && time !== timesArray[timesArray.length-1]){
+        temperaturesArray.push(setpoint);
+        timesArray.push(time);
+      }
+    }
+
+    return {
+      temperaturesArray: temperaturesArray,
+      timesArray: timesArray
+    };
+  }
 
   var payloadArr = payload.split(",");
   var rf_address = payloadArr[0].slice(0, 6).toString('hex');
@@ -164,6 +203,24 @@ function parseCommandConfiguration (payload) {
     temp_offset: (decodedPayload[22] / 2) - 3.5,
     max_valve: decodedPayload[27] * (100/255)
   };
+
+  try {
+    if(dataObj.device_type !== 5){
+      dataObj.weekly_program = {};
+      var length = 26;
+      var offset = 27;
+      for (var i = 0; i < 7; i++) {
+        const bf = Buffer.alloc(length);
+        var end =  offset + length;
+        decodedPayload.copy(bf, 0, offset, offset+length);
+        dataObj.weekly_program[weekly_program_days[i]] = parseDayProgram(bf);
+        offset =  end;
+      }
+
+    }
+  } catch (e) {
+    console.log("Error getting weekly program for device "+dataObj.rf_address, dataObj);
+  }
 
   return dataObj;
 }
