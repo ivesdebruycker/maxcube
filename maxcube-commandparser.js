@@ -309,42 +309,9 @@ function decodeDeviceThermostat (payload) {
 }
 
 function decodeDeviceWallThermostat (payload) {
-
-  //regular device parsing
+  //regular device parsing, only temp is in a different location
   var deviceStatus = decodeDeviceThermostat (payload);
-
-  //wall thermostat has different temp and setpoint parsing:
-  //https://github.com/Bouni/max-cube-protocol/blob/master/L-Message.md#actual-temperature-wallmountedthermostat
-
-  /*
-  Actual Temperature (WallMountedThermostat)
-
-  11      Actual Temperature  1           219
-  Room temperature measured by the wall mounted thermostat in °C * 10. For example 0xDB = 219 = 21.9°C The temperature is represented by 9 bits; the 9th bit is available as the top bit at offset 8
-
-  offset|      8    | ... |     12    |
-  hex   |     B2    |     |     24    |
-  binary| 1011 0010 | ... | 0010 0100 |
-          | || ||||         |||| ||||
-          | ++-++++--------------------- temperature (°C*2):            110010 = 25.0°C
-          |                 |||| ||||
-          +-----------------++++-++++--- actual temperature (°C*10): 100100100 = 29.2°C
-
-  */
-
-  //offset 8 binary to extract only needed bit
-  var off8Bin= (payload[8] >>> 0).toString(2);
-
-  //offset8 without top bit (it is used by actual temperature and will corrupt the setpoint value)
-  var setPoint = parseInt(((off8Bin + '').substring(1)).replace(/[^01]/gi, ''), 2);
-  //C/2
-  deviceStatus.setpoint = setPoint / 2;
-
-  //get the TopBit and zero fill right to use it as 9 bit of offset 12
-  var off8TopBit =  parseInt(off8Bin.substring(0,1)) << 8;
-  //Bitwise OR offset 8/offset 12 and finally C/10 to read the actual temperature
-  deviceStatus.temp = (parseInt(off8TopBit) | parseInt(payload[12])) / 10;
-
+  deviceStatus.temp = (payload[11]?25.5:0) + payload[12] / 10;
   return deviceStatus;
 }
 

@@ -1,7 +1,7 @@
 {
-  "name": "maxcube",
-  "version": "1.0.6",
-  "description": "eQ-3 Max! Cube interface",
+  "name": "maxcube2",
+  "version": "2.1.2",
+  "description": "eq-3 Max! Cube interface for homebridge-platform-maxcube",
   "main": "maxcube.js",
   "dependencies": {
     "bluebird": "^3.3.4",
@@ -9,11 +9,27 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ivesdebruycker/maxcube.git"
+    "url": "https://github.com/normen/maxcube2.git"
   },
   "author": "Ives De Bruycker",
+  "contributors": [
+    "Pim van Gennip",
+    "Luca Mazzilli",
+    "Daniel Weeber",
+    "Normen Hansen"
+  ],
+  "keywords": [
+    "eq-3",
+    "eq3",
+    "maxcube",
+    "thermostat",
+    "home",
+    "heating",
+    "max",
+    "elv"
+  ],
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ivesdebruycker/maxcube/issues"
+    "url": "https://github.com/normen/maxcube2/issues"
   }
 }
