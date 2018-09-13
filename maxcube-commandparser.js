@@ -309,9 +309,35 @@ function decodeDeviceThermostat (payload) {
 }
 
 function decodeDeviceWallThermostat (payload) {
+
   //regular device parsing, only temp is in a different location
   var deviceStatus = decodeDeviceThermostat (payload);
   deviceStatus.temp = (payload[11]?25.5:0) + payload[12] / 10;
+
+  //alternative parsing if setpoint is 60-80°C
+  if(payload[8]>=128){
+    //wall thermostat has different temp and setpoint parsing:
+    //https://github.com/Bouni/max-cube-protocol/blob/master/L-Message.md#actual-temperature-wallmountedthermostat
+
+    /*
+    Actual Temperature (WallMountedThermostat)
+
+    11      Actual Temperature  1           219
+    Room temperature measured by the wall mounted thermostat in °C * 10. For example 0xDB = 219 = 21.9°C The temperature is represented by 9 bits; the 9th bit is available as the top bit at offset 8
+
+    offset|      8    | ... |     12    |
+    hex   |     B2    |     |     24    |
+    binary| 1011 0010 | ... | 0010 0100 |
+            | || ||||         |||| ||||
+            | ++-++++--------------------- temperature (°C*2):            110010 = 25.0°C
+            |                 |||| ||||
+            +-----------------++++-++++--- actual temperature (°C*10): 100100100 = 29.2°C
+    */
+
+    //removing first and second bit from offset 8 00111111 & 10110010 = 00110010
+    deviceStatus.setpoint = (63 & payload[8]) / 2;
+    deviceStatus.temp = (payload[8]>=128 ? 25.5 : 0) + payload[12] / 10;
+  }
   return deviceStatus;
 }
 
