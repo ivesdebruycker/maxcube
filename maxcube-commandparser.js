@@ -63,7 +63,7 @@ function parseCommandHello (payload) {
 function parseCommandMetadata (payload) {
   var payloadArr = payload.split(",");
 
-  var decodedPayload = new Buffer(payloadArr[2], 'base64');
+  var decodedPayload = Buffer.from(payloadArr[2], 'base64');
   var room_count = decodedPayload[2];
   var currentIndex = 3;
 
