@@ -50,39 +50,43 @@ function MaxCube(ip, port) {
   });
 
   this.maxCubeLowLevel.on('command', function (command) {
-    var parsedCommand = MaxCubeCommandParser.parse(command.type, command.payload);
-    if (self.waitForCommandType === command.type && self.waitForCommandResolver) {
-      self.waitForCommandResolver.resolve(parsedCommand);
-      self.waitForCommandType = undefined;
-      self.waitForCommandResolver = undefined;
-    }
+    try {
+      var parsedCommand = MaxCubeCommandParser.parse(command.type, command.payload);
+      if (self.waitForCommandType === command.type && self.waitForCommandResolver) {
+        self.waitForCommandResolver.resolve(parsedCommand);
+        self.waitForCommandType = undefined;
+        self.waitForCommandResolver = undefined;
+      }
 
-    switch (command.type) {
-      case 'H': {
-        self.commStatus.duty_cycle        = parsedCommand.duty_cycle;
-        self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
-        self.metaInfo.serial_number       = parsedCommand.serial_number;
-        self.metaInfo.firmware_version    = parsedCommand.firmware_version;
-        self.emit('hello', parsedCommand);
-        break;
+      switch (command.type) {
+        case 'H': {
+          self.commStatus.duty_cycle        = parsedCommand.duty_cycle;
+          self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
+          self.metaInfo.serial_number       = parsedCommand.serial_number;
+          self.metaInfo.firmware_version    = parsedCommand.firmware_version;
+          self.emit('hello', parsedCommand);
+          break;
+        }
+        case 'M': {
+          self.roomCache = parsedCommand.rooms;
+          self.deviceCache = parsedCommand.devices;
+          self.initialised = true;
+          self.emit('meta_data', parsedCommand);
+          break;
+        }
+        case 'L': {
+          self.updateDeviceInfo(parsedCommand);
+          self.emit('device_list', parsedCommand);
+          break;
+        }
+        case 'C': {
+          self.updateDeviceConfig(parsedCommand);
+          self.emit('configuration', parsedCommand);
+          break;
+        }
       }
-      case 'M': {
-        self.roomCache = parsedCommand.rooms;
-        self.deviceCache = parsedCommand.devices;
-        self.initialised = true;
-        self.emit('meta_data', parsedCommand);
-        break;
-      }
-      case 'L': {
-        self.updateDeviceInfo(parsedCommand);
-        self.emit('device_list', parsedCommand);
-        break;
-      }
-      case 'C': {
-        self.updateDeviceConfig(parsedCommand);
-        self.emit('configuration', parsedCommand);
-        break;
-      }
+    } catch (e) {
+        self.emit('error', "Problem while parsing the command '" +command.type+"': " + e.stack);
     }
   });
 
