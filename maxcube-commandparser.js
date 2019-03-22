@@ -63,7 +63,7 @@ function parseCommandHello (payload) {
 function parseCommandMetadata (payload) {
   var payloadArr = payload.split(",");
 
-  var decodedPayload = new Buffer(payloadArr[2], 'base64');
+  var decodedPayload = Buffer.from(payloadArr[2], 'base64');
   var room_count = decodedPayload[2];
   var currentIndex = 3;
 
@@ -144,8 +144,47 @@ function parseCommandConfiguration (payload) {
                             The five least significant bits (LSB) are presenting the time (in hours)
   27         1  FF          Maximum Valve setting; *(100/255) to get in %
   1C         1  00          Valve Offset ; *(100/255) to get in %
-  1D         ?  44 48 ...   Weekly program (see The weekly program)
-  */
+  1d        182 Weekly Program        Schedule of 26 bytes for
+                                      each day starting with
+                                      Saturday. Each schedule
+                                      consists of 13 words
+                                      (2 bytes) e.g. set points.
+                                      1 set point consist of
+                                      7 MSB bits is temperature
+                                        set point (in degrees * 2)
+                                      9 LSB bits is until time
+                                        (in minutes * 5)
+
+
+*/
+  var weekly_program_days = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday' ];
+  var parseDayProgram = function(dayPayload){
+    var temperaturesArray = [];
+    var timesArray = [];
+    var debug = [];
+    for (var i = 1; i <= 13; i++) {
+      var length = 2;
+      var offset =  i*2;
+      //  Weekly program  41 20  0100000 100100000 -> 16 degrees, until 24:00
+      var msb = dayPayload[offset]>>1;
+      var lsb = (dayPayload[offset]&1)<<8;
+
+      var setpoint = msb/2;
+      var minutes = (lsb+dayPayload[offset+1])*5;
+      var time = Math.floor(minutes / 60)+':'+(minutes%60==0?'00':(minutes%60<10?'0'+minutes%60:minutes%60));
+
+      //if a day has less than 13 setpoints, last one repeats until we reach 13
+      if(setpoint > 0 && time !==undefined && setpoint !== temperaturesArray[temperaturesArray.length-1]  && time !== timesArray[timesArray.length-1]){
+        temperaturesArray.push(setpoint);
+        timesArray.push(time);
+      }
+    }
+
+    return {
+      temperaturesArray: temperaturesArray,
+      timesArray: timesArray
+    };
+  }
 
   var payloadArr = payload.split(",");
   var rf_address = payloadArr[0].slice(0, 6).toString('hex');
@@ -164,6 +203,24 @@ function parseCommandConfiguration (payload) {
     temp_offset: (decodedPayload[22] / 2) - 3.5,
     max_valve: decodedPayload[27] * (100/255)
   };
+
+  try {
+    if(dataObj.device_type !== 5){
+      dataObj.weekly_program = {};
+      var length = 26;
+      var offset = 27;
+      for (var i = 0; i < 7; i++) {
+        const bf = Buffer.alloc(length);
+        var end =  offset + length;
+        decodedPayload.copy(bf, 0, offset, offset+length);
+        dataObj.weekly_program[weekly_program_days[i]] = parseDayProgram(bf);
+        offset =  end;
+      }
+
+    }
+  } catch (e) {
+    console.log("Error getting weekly program for device "+dataObj.rf_address, dataObj);
+  }
 
   return dataObj;
 }
@@ -310,41 +367,34 @@ function decodeDeviceThermostat (payload) {
 
 function decodeDeviceWallThermostat (payload) {
 
-  //regular device parsing
+  //regular device parsing, only temp is in a different location
   var deviceStatus = decodeDeviceThermostat (payload);
+  deviceStatus.temp = (payload[11]?25.5:0) + payload[12] / 10;
 
-  //wall thermostat has different temp and setpoint parsing:
-  //https://github.com/Bouni/max-cube-protocol/blob/master/L-Message.md#actual-temperature-wallmountedthermostat
+  //alternative parsing if setpoint is 60-80°C
+  if(payload[8]>=128){
+    //wall thermostat has different temp and setpoint parsing:
+    //https://github.com/Bouni/max-cube-protocol/blob/master/L-Message.md#actual-temperature-wallmountedthermostat
 
-  /*
-  Actual Temperature (WallMountedThermostat)
+    /*
+    Actual Temperature (WallMountedThermostat)
 
-  11      Actual Temperature  1           219
-  Room temperature measured by the wall mounted thermostat in °C * 10. For example 0xDB = 219 = 21.9°C The temperature is represented by 9 bits; the 9th bit is available as the top bit at offset 8
+    11      Actual Temperature  1           219
+    Room temperature measured by the wall mounted thermostat in °C * 10. For example 0xDB = 219 = 21.9°C The temperature is represented by 9 bits; the 9th bit is available as the top bit at offset 8
 
-  offset|      8    | ... |     12    |
-  hex   |     B2    |     |     24    |
-  binary| 1011 0010 | ... | 0010 0100 |
-          | || ||||         |||| ||||
-          | ++-++++--------------------- temperature (°C*2):            110010 = 25.0°C
-          |                 |||| ||||
-          +-----------------++++-++++--- actual temperature (°C*10): 100100100 = 29.2°C
+    offset|      8    | ... |     12    |
+    hex   |     B2    |     |     24    |
+    binary| 1011 0010 | ... | 0010 0100 |
+            | || ||||         |||| ||||
+            | ++-++++--------------------- temperature (°C*2):            110010 = 25.0°C
+            |                 |||| ||||
+            +-----------------++++-++++--- actual temperature (°C*10): 100100100 = 29.2°C
+    */
 
-  */
-
-  //offset 8 binary to extract only needed bit
-  var off8Bin= (payload[8] >>> 0).toString(2);
-
-  //offset8 without top bit (it is used by actual temperature and will corrupt the setpoint value)
-  var setPoint = parseInt(((off8Bin + '').substring(1)).replace(/[^01]/gi, ''), 2);
-  //C/2
-  deviceStatus.setpoint = setPoint / 2;
-
-  //get the TopBit and zero fill right to use it as 9 bit of offset 12
-  var off8TopBit =  parseInt(off8Bin.substring(0,1)) << 8;
-  //Bitwise OR offset 8/offset 12 and finally C/10 to read the actual temperature
-  deviceStatus.temp = (parseInt(off8TopBit) | parseInt(payload[12])) / 10;
-
+    //removing first and second bit from offset 8 00111111 & 10110010 = 00110010
+    deviceStatus.setpoint = (63 & payload[8]) / 2;
+    deviceStatus.temp = (payload[8]>=128 ? 25.5 : 0) + payload[12] / 10;
+  }
   return deviceStatus;
 }
 

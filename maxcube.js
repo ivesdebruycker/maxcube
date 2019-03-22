@@ -15,6 +15,8 @@ function MaxCube(ip, port) {
   this.waitForCommandResolver = undefined;
   this.initialised = false;
 
+  this.setMaxListeners(1024);
+
   this.commStatus = {
     duty_cycle: 0,
     free_memory_slots: 0,
@@ -25,6 +27,7 @@ function MaxCube(ip, port) {
   }
   this.roomCache = [];
   this.deviceCache = {};
+  this.configCache = {};
 
   this.maxCubeLowLevel.on('closed', function () {
     self.initialised = false;
@@ -41,32 +44,49 @@ function MaxCube(ip, port) {
     }
   });
 
+  this.maxCubeLowLevel.on('error', function () {
+    self.initialised = false;
+    self.emit('error');
+  });
+
   this.maxCubeLowLevel.on('command', function (command) {
-    var parsedCommand = MaxCubeCommandParser.parse(command.type, command.payload);
-    if (self.waitForCommandType === command.type && self.waitForCommandResolver) {
-      self.waitForCommandResolver.resolve(parsedCommand);
-      self.waitForCommandType = undefined;
-      self.waitForCommandResolver = undefined;
-    }
+    try {
+      var parsedCommand = MaxCubeCommandParser.parse(command.type, command.payload);
+      if (self.waitForCommandType === command.type && self.waitForCommandResolver) {
+        self.waitForCommandResolver.resolve(parsedCommand);
+        self.waitForCommandType = undefined;
+        self.waitForCommandResolver = undefined;
+      }
 
-    switch (command.type) {
-      case 'H': {
-        self.commStatus.duty_cycle        = parsedCommand.duty_cycle;
-        self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
-        self.metaInfo.serial_number       = parsedCommand.serial_number;
-        self.metaInfo.firmware_version    = parsedCommand.firmware_version;
-        break;
+      switch (command.type) {
+        case 'H': {
+          self.commStatus.duty_cycle        = parsedCommand.duty_cycle;
+          self.commStatus.free_memory_slots = parsedCommand.free_memory_slots;
+          self.metaInfo.serial_number       = parsedCommand.serial_number;
+          self.metaInfo.firmware_version    = parsedCommand.firmware_version;
+          self.emit('hello', parsedCommand);
+          break;
+        }
+        case 'M': {
+          self.roomCache = parsedCommand.rooms;
+          self.deviceCache = parsedCommand.devices;
+          self.initialised = true;
+          self.emit('meta_data', parsedCommand);
+          break;
+        }
+        case 'L': {
+          self.updateDeviceInfo(parsedCommand);
+          self.emit('device_list', parsedCommand);
+          break;
+        }
+        case 'C': {
+          self.updateDeviceConfig(parsedCommand);
+          self.emit('configuration', parsedCommand);
+          break;
+        }
       }
-      case 'M': {
-        self.roomCache = parsedCommand.rooms;
-        self.deviceCache = parsedCommand.devices;
-        self.initialised = true;
-        break;
-      }
-      case 'L': {
-        self.updateDeviceInfo(parsedCommand);
-
-      }
+    } catch (e) {
+        self.emit('error', "Problem while parsing the command '" +command.type+"': " + e.stack);
     }
   });
 
@@ -87,6 +107,13 @@ function MaxCube(ip, port) {
           }
         }
       }
+    }
+  }
+
+  this.updateDeviceConfig = function(deviceConfig){
+    if (typeof deviceConfig != 'undefined'){
+      var rf = deviceConfig.rf_address;
+      self.configCache[rf] = deviceConfig;
     }
   }
 }
@@ -140,10 +167,22 @@ MaxCube.prototype.getDeviceStatus = function(rf_address) {
   });
 };
 
+MaxCube.prototype.updateDeviceStatus = function() {
+  checkInitialised.call(this);
+
+  send.call(this, 'l:\r\n');
+};
+
 MaxCube.prototype.getDevices = function() {
   checkInitialised.call(this);
 
   return this.deviceCache;
+};
+
+MaxCube.prototype.getDevice = function(rf_address) {
+  checkInitialised.call(this);
+
+  return this.deviceCache[rf_address];
 };
 
 MaxCube.prototype.getDeviceInfo = function(rf_address) {
@@ -171,8 +210,21 @@ MaxCube.prototype.getDeviceInfo = function(rf_address) {
       deviceInfo.room_id = room.room_id;
     }
   }
-  
+
   return deviceInfo;
+};
+
+MaxCube.prototype.getDeviceConfiguration = function(rf_address) {
+  checkInitialised.call(this);
+  var deviceConfig = {}
+  var config = this.configCache[rf_address];
+  if (config) {
+    for(var item in config) {
+      var val = config[item];
+      deviceConfig[item] = val;
+    }
+  }
+  return deviceConfig;
 };
 
 MaxCube.prototype.getRooms = function() {
@@ -185,6 +237,12 @@ MaxCube.prototype.flushDeviceCache = function() {
   checkInitialised.call(this);
 
   return send.call(this, 'm:\r\n');
+};
+
+MaxCube.prototype.resetError = function(rf_address) {
+  checkInitialised.call(this);
+
+  return send.call(this, MaxCubeCommandFactory.generateResetCommand(rf_address, this.deviceCache[rf_address].room_id), 'S');
 };
 
 MaxCube.prototype.sayHello = function() {
@@ -214,12 +272,12 @@ MaxCube.prototype.setSchedule = function(rf_address, room_id, weekday, temperatu
   // weekday:           0=mo,1=tu,..,6=su
   // temperaturesArray: [19.5,21,..] degrees Celsius (max 7)
   // timesArray:        ['HH:mm',..] 24h format (max 7, same amount as temperatures)
-  // the first time will be the time (from 00:00 to timesArray[0]) that the first temperature is active. Last possibe time of the day: 00:00 
+  // the first time will be the time (from 00:00 to timesArray[0]) that the first temperature is active. Last possibe time of the day: 00:00
 
   checkInitialised.call(this);
 
   var self = this;
-  
+
   var command = MaxCubeCommandFactory.generateSetDayProgramCommand (rf_address, room_id, weekday, temperaturesArray, timesArray);
   return send.call(this, command, 'S').then(function (res) {
     self.commStatus.duty_cycle = res.duty_cycle;

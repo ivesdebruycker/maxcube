@@ -145,11 +145,19 @@ function generateSetDayProgramCommand (rfAdress, room_id, weekday, temperaturesA
   return data;
 }
 
+function generateResetCommand (rfAdress) {
+  var hexString      = rfAdress
+  var payload        = new Buffer(hexString, 'hex').toString('base64');
+  var data           = 'r:01,' + payload + '\r\n';
+  return data;
+}
+
 function padLeft(data, totalLength){
   return Array(totalLength - String(data).length + 1).join('0') + data;
 }
 
 module.exports = {
   generateSetTemperatureCommand: generateSetTemperatureCommand,
-  generateSetDayProgramCommand: generateSetDayProgramCommand
+  generateSetDayProgramCommand: generateSetDayProgramCommand,
+  generateResetCommand:generateResetCommand
 };

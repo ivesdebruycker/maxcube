@@ -1,14 +1,22 @@
-maxcube
-=======
+# MaxCube2 [![NPM Version](https://img.shields.io/npm/v/maxcube2.svg)](https://www.npmjs.com/package/maxcube2)
 
-eQ-3 Max! Cube interface library.
+eQ-3 Max! Cube interface library for homebridge-platform-maxcube
 
-For a cli, see [maxcube-cli](https://github.com/ivesdebruycker/maxcube-cli). If you want to integrate your MAX! Cube in node-red, use [node-red-node-maxcube](https://github.com/ivesdebruycker/node-red-node-maxcube).
+This is a fork of the work first started by https://github.com/ivesdebruycker/maxcube
 
+## Introduction
+### History
+Why this library is called maxcube_2_? Because the maxcube project seemed to be dead without response to issues or PRs for over half a year and I needed it fixed for my homebridge plugin. So I finally decided to continue its legacy as "maxcube2" but then it suddenly got revived. Now I won't change the name of this library anymore and keep this fork for the homebridge-platform-maxcube project - still as a proper merge-able fork of maxcube however.
+
+### Changes from maxcube
+- More events (error, device_list etc.)
+- Getting device configurations (min/max/eco/comfort temperatures etc.)
+
+The old API didn't change currently so it's a drop-in replacement.
 
 ## Example
 ```
-var MaxCube = require('maxcube');
+var MaxCube = require('maxcube2');
 var myMaxCube = new MaxCube('192.168.1.123', 62910);
 
 myMaxCube.on('connected', function () {
@@ -28,6 +36,11 @@ myMaxCube.on('closed', function () {
 ## Events
 * connected
 * closed
+* error
+* hello (arg = hello object)
+* meta_data (arg = meta data object)
+* device_list (arg = list of devices)
+* configuration (arg = configuration object for a single device)
 
 ## API
 ### getConnection()
@@ -77,6 +90,10 @@ myMaxCube.setTemperature('0dd6b5', 18).then(function (success) {
 });
 ```
 
-## Related projects
-* [maxcube-cli](https://github.com/ivesdebruycker/maxcube-cli): a command-line interface for eQ-3 Max! Cube
-* [node-red-node-maxcube](https://github.com/ivesdebruycker/node-red-node-maxcube): a node for interfacing the eQ-3 Max! Cube using [node-red](https://github.com/node-red/node-red)
+### setSchedule(rf_address, room_id, weekday, temperaturesArray, timesArray)
+Set a schedule for a device.
+
+- weekday:           0=mo,1=tu,..,6=su
+- temperaturesArray: [19.5,21,..] degrees Celsius (max 7)
+- timesArray:        ['HH:mm',..] 24h format (max 7, same amount as temperatures)
+- the first time will be the time (from 00:00 to timesArray[0]) that the first temperature is active. Last possibe time of the day: 00:00
